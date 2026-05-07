@@ -127,7 +127,6 @@ function showScreen(id) {
     $(`#${id}`).classList.add('active');
     $$('.nav-item').forEach(n => n.classList.remove('active'));
     if (id === 'screen-bag') $('#nav-bag')?.classList.add('active');
-    else if (id === 'screen-map') $('#nav-map')?.classList.add('active');
     else if (id === 'screen-pokedex') $('#nav-pokedex')?.classList.add('active');
     else if (id === 'screen-options') $('.nav-item[data-tab="options"]')?.classList.add('active');
     else if (id === 'screen-patchnotes') $('.nav-item[data-tab="patchnotes"]')?.classList.add('active');
