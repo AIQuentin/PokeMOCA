@@ -1,5 +1,8 @@
 // Système de combat tour par tour simplifié
-import { buildBattlePokemon, GEN1_WILD_POOL, CHAMPION_POKEMON } from './api.js';
+import {
+    buildBattlePokemon, GEN1_WILD_POOL, CHAMPION_POKEMON, ROUTES,
+    expGained, applyLevelUp
+} from './api.js';
 
 // Table d'efficacité des types (Gen 1)
 const TYPE_CHART = {
@@ -57,12 +60,41 @@ export function attackHits(move) {
     return Math.random() * 100 < move.accuracy;
 }
 
-// Difficulté abaissée : niveaux plus bas
-export async function spawnWildPokemon() {
-    const pool = GEN1_WILD_POOL;
+// Sélectionne le meilleur move pour l'autobattle / l'IA ennemie
+// Évalue chaque attaque par : power × STAB × multiplicateur de type
+export function pickBestMove(attacker, defender) {
+    let best = attacker.moves[0];
+    let bestScore = -1;
+    for (const m of attacker.moves) {
+        const stab = attacker.types.includes(m.type) ? 1.5 : 1;
+        const tm = typeMultiplier(m.type, defender.types);
+        const score = (m.power || 0) * stab * tm;
+        if (score > bestScore) {
+            bestScore = score;
+            best = m;
+        }
+    }
+    return best;
+}
+
+// Spawn d'un Pokémon sauvage à partir d'une route (ou pool legacy)
+export async function spawnWildPokemon(routeId = null) {
+    let pool, levelMin, levelMax;
+    if (routeId) {
+        const route = ROUTES.find(r => r.id === routeId);
+        if (route) {
+            pool = route.pool;
+            levelMin = route.levelMin;
+            levelMax = route.levelMax;
+        }
+    }
+    if (!pool) {
+        pool = GEN1_WILD_POOL;
+        levelMin = 2;
+        levelMax = 3;
+    }
     const name = pool[Math.floor(Math.random() * pool.length)];
-    // Niveau 2-3 (au lieu de 4-5 avant)
-    const level = 2 + Math.floor(Math.random() * 2);
+    const level = levelMin + Math.floor(Math.random() * (levelMax - levelMin + 1));
     return buildBattlePokemon(name, level);
 }
 
@@ -73,18 +105,12 @@ export async function spawnChampion() {
     return buildBattlePokemon(name, 7);
 }
 
-// IA simple pour l'adversaire
+// IA ennemie : 70% meilleur move, 30% aléatoire (pour rester surprenant)
 export function pickEnemyMove(enemy, player) {
-    const usable = enemy.moves.filter(m => m.currentPp > 0);
-    if (usable.length === 0) return enemy.moves[0];
-    if (Math.random() < 0.65) {
-        return usable.reduce((best, m) => {
-            const bestEff = (best.power || 0) * typeMultiplier(best.type, player.types);
-            const mEff = (m.power || 0) * typeMultiplier(m.type, player.types);
-            return mEff > bestEff ? m : best;
-        });
+    if (Math.random() < 0.7) {
+        return pickBestMove(enemy, player);
     }
-    return usable[Math.floor(Math.random() * usable.length)];
+    return enemy.moves[Math.floor(Math.random() * enemy.moves.length)];
 }
 
 // Système de capture
@@ -95,13 +121,24 @@ export function attemptCapture(pokemon, isChampionBattle = false) {
     }
 
     const hpRatio = pokemon.currentHp / pokemon.maxHp;
-    // Plus le HP est bas, plus le taux est élevé
-    // captureRate va de ~45 à ~255 sur PokeAPI
-    const baseRate = pokemon.captureRate / 255; // 0 à 1
-    // Bonus si Pokémon affaibli : jusqu'à +60%
+    const baseRate = pokemon.captureRate / 255;
     const hpBonus = (1 - hpRatio) * 0.6;
     const finalChance = Math.min(0.95, baseRate * 0.7 + hpBonus + 0.15);
 
     const success = Math.random() < finalChance;
     return { caught: success, chance: finalChance };
+}
+
+// Attribue de l'EXP au Pokémon et applique tous les level up déclenchés
+// Retourne la liste des niveaux atteints (vide si pas de level up)
+export function awardExp(pokemon, enemy) {
+    const gain = expGained(enemy.level, enemy.baseExp || 60);
+    pokemon.exp += gain;
+    const levelUps = [];
+    while (pokemon.exp >= pokemon.expToNext && pokemon.level < 100) {
+        pokemon.exp -= pokemon.expToNext;
+        applyLevelUp(pokemon);
+        levelUps.push(pokemon.level);
+    }
+    return { gain, levelUps };
 }

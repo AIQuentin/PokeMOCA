@@ -6,6 +6,7 @@
     <title>PokeMOCA</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="preconnect" href="https://pokeapi.co">
+    <link rel="preconnect" href="https://play.pokemonshowdown.com">
     <link rel="preconnect" href="https://raw.githubusercontent.com">
 </head>
 <body>
@@ -17,12 +18,21 @@
             </div>
             <nav class="nav">
                 <button class="nav-item active" data-tab="game">
-                    <span class="nav-icon">⚔️</span>
+                    <span class="nav-icon">⚔</span>
                     <span class="nav-label">Aventure</span>
+                </button>
+                <button class="nav-item" data-tab="map" id="nav-map" disabled>
+                    <span class="nav-icon">🗺</span>
+                    <span class="nav-label">Carte</span>
                 </button>
                 <button class="nav-item" data-tab="bag" id="nav-bag" disabled>
                     <span class="nav-icon">🎒</span>
                     <span class="nav-label">Sac</span>
+                </button>
+                <button class="nav-item" data-tab="patchnotes">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-label">Notes de patch</span>
+                    <span class="badge-new" id="badge-new" hidden>NEW</span>
                 </button>
                 <button class="nav-item disabled" title="Bientôt disponible">
                     <span class="nav-icon">📖</span>
@@ -50,20 +60,20 @@
                     <span class="badge-soon">Soon</span>
                 </button>
                 <button class="nav-item disabled" title="Bientôt disponible">
-                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-icon">⚙</span>
                     <span class="nav-label">Options</span>
                     <span class="badge-soon">Soon</span>
                 </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="trainer-card" id="trainer-card" hidden>
-                    <div class="trainer-avatar">🧑</div>
+                    <div class="trainer-avatar">▲</div>
                     <div class="trainer-info">
                         <div class="trainer-name" id="trainer-name-display">—</div>
                         <div class="trainer-meta" id="trainer-mode-display">Dresseur</div>
                     </div>
                 </div>
-                <div class="version">v1.1 — Génération I</div>
+                <div class="version" id="version-display">v1.2.0 — Kanto & Progression</div>
             </div>
         </aside>
 
@@ -77,7 +87,7 @@
                 </div>
                 <div class="mode-grid">
                     <div class="mode-card" data-mode="normal">
-                        <div class="mode-icon">😊</div>
+                        <div class="mode-icon">●</div>
                         <h3>Normal</h3>
                         <p class="mode-desc">
                             Mode détendu pour découvrir le jeu.<br>
@@ -89,7 +99,7 @@
                         </div>
                     </div>
                     <div class="mode-card" data-mode="hardcore">
-                        <div class="mode-icon">💀</div>
+                        <div class="mode-icon">◆</div>
                         <h3>Hardcore</h3>
                         <p class="mode-desc">
                             Pour les vrais dresseurs.<br>
@@ -106,7 +116,7 @@
             <!-- Écran 1 : nom du dresseur -->
             <section class="screen" id="screen-welcome">
                 <div class="welcome-card">
-                    <h1 class="welcome-title">Bienvenue dans le monde des Pokémon !</h1>
+                    <h1 class="welcome-title">Bienvenue dans le monde des Pokémon</h1>
                     <p class="welcome-subtitle">
                         Je suis le <strong>Professeur Chen</strong>. Avant de commencer ton aventure,
                         dis-moi… comment t'appelles-tu&nbsp;?
@@ -142,34 +152,33 @@
             <!-- Écran 3 : Hub de jeu -->
             <section class="screen" id="screen-hub">
                 <div class="hub-header">
-                    <h2>Route 1</h2>
-                    <p>Des Pokémon sauvages rôdent dans les hautes herbes…</p>
+                    <h2 id="hub-route-name">Route 1</h2>
+                    <p id="hub-route-desc">Des Pokémon sauvages rôdent dans les hautes herbes.</p>
                 </div>
                 <div class="hub-content">
                     <div class="hub-team">
-                        <h3>Ton équipe (<span id="team-count">1</span>/6)</h3>
+                        <div class="hub-team-header">
+                            <h3>Ton équipe (<span id="team-count">1</span>/6)</h3>
+                            <button class="btn btn-ghost btn-mini" id="btn-toggle-reorder">Réorganiser</button>
+                        </div>
                         <div class="team-roster" id="team-roster"></div>
                     </div>
                     <div class="hub-actions">
                         <div class="action-card primary" id="action-explore">
-                            <div class="action-icon">🌿</div>
-                            <div class="action-title">Explorer la Route 1</div>
-                            <div class="action-desc">Trouver un Pokémon sauvage pour combattre</div>
+                            <div class="action-title">Explorer cette zone</div>
+                            <div class="action-desc">Trouver un Pokémon sauvage</div>
+                        </div>
+                        <div class="action-card" id="action-map">
+                            <div class="action-title">Changer de zone</div>
+                            <div class="action-desc">Voir la carte de Kanto</div>
                         </div>
                         <div class="action-card" id="action-heal">
-                            <div class="action-icon">🏥</div>
                             <div class="action-title">Centre Pokémon</div>
                             <div class="action-desc">Soigner toute ton équipe</div>
                         </div>
                         <div class="action-card" id="action-champion">
-                            <div class="action-icon">🏆</div>
                             <div class="action-title">Affronter le Champion</div>
                             <div class="action-desc" id="champion-desc">Bats 3 Pokémon sauvages d'abord</div>
-                        </div>
-                        <div class="action-card disabled">
-                            <div class="action-icon">🗺️</div>
-                            <div class="action-title">Voyager vers Argenta</div>
-                            <div class="action-desc">Bientôt disponible</div>
                         </div>
                     </div>
                 </div>
@@ -179,17 +188,33 @@
                 </div>
             </section>
 
+            <!-- Écran : Carte de Kanto -->
+            <section class="screen" id="screen-map">
+                <div class="map-header">
+                    <h2>Carte de Kanto</h2>
+                    <p>Choisis une zone à explorer. Chaque route abrite ses propres Pokémon.</p>
+                </div>
+                <div class="route-grid" id="route-grid">
+                    <div class="route-loading">Chargement des routes…</div>
+                </div>
+            </section>
+
             <!-- Écran 4 : Combat -->
             <section class="screen" id="screen-battle">
                 <div class="battle-arena">
                     <!-- Adversaire en HAUT-DROITE -->
                     <div class="battle-side opponent">
                         <div class="battle-info">
-                            <div class="pokemon-name" id="enemy-name">—</div>
+                            <div class="pokemon-name-row">
+                                <span class="pokemon-name" id="enemy-name">—</span>
+                                <span class="shiny-star" id="enemy-shiny" hidden>★</span>
+                            </div>
                             <div class="pokemon-level" id="enemy-level">Niv. ?</div>
                             <div class="hp-container">
-                                <div class="hp-label">PV</div>
-                                <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
+                                <div class="hp-row">
+                                    <span class="hp-label">PV</span>
+                                    <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
+                                </div>
                                 <div class="hp-text" id="enemy-hp-text">—/—</div>
                             </div>
                         </div>
@@ -203,12 +228,21 @@
                             <img id="player-sprite" src="" alt="">
                         </div>
                         <div class="battle-info">
-                            <div class="pokemon-name" id="player-name">—</div>
+                            <div class="pokemon-name-row">
+                                <span class="pokemon-name" id="player-name">—</span>
+                                <span class="shiny-star" id="player-shiny" hidden>★</span>
+                            </div>
                             <div class="pokemon-level" id="player-level">Niv. 5</div>
                             <div class="hp-container">
-                                <div class="hp-label">PV</div>
-                                <div class="hp-bar"><div class="hp-fill" id="player-hp-fill"></div></div>
+                                <div class="hp-row">
+                                    <span class="hp-label">PV</span>
+                                    <div class="hp-bar"><div class="hp-fill" id="player-hp-fill"></div></div>
+                                </div>
                                 <div class="hp-text" id="player-hp-text">—/—</div>
+                                <div class="exp-row">
+                                    <span class="exp-label">EXP</span>
+                                    <div class="exp-bar"><div class="exp-fill" id="player-exp-fill"></div></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -220,9 +254,10 @@
 
                     <!-- Menu principal en combat -->
                     <div class="battle-menu" id="battle-menu">
-                        <button class="menu-btn" data-action="attack">⚔️ Attaque</button>
-                        <button class="menu-btn" data-action="bag">🎒 Sac</button>
-                        <button class="menu-btn" data-action="flee">🏃 Fuite</button>
+                        <button class="menu-btn" data-action="attack">Attaque</button>
+                        <button class="menu-btn" data-action="auto" id="btn-autobattle">Auto</button>
+                        <button class="menu-btn" data-action="bag">Sac</button>
+                        <button class="menu-btn" data-action="flee">Fuite</button>
                     </div>
 
                     <!-- Sous-menu attaques -->
@@ -232,9 +267,9 @@
                     <div class="battle-bag" id="battle-bag" hidden>
                         <div class="bag-items">
                             <button class="bag-item" id="use-pokeball">
-                                <span class="bag-icon">🔴</span>
+                                <span class="bag-icon item-pokeball" aria-hidden="true"></span>
                                 <span class="bag-name">Pokéball</span>
-                                <span class="bag-count">x<span id="pokeball-count">5</span></span>
+                                <span class="bag-count">×<span id="pokeball-count">5</span></span>
                             </button>
                         </div>
                         <button class="btn btn-secondary btn-back-menu">← Retour</button>
@@ -245,20 +280,20 @@
             <!-- Écran 5 : Sac (onglet sidebar) -->
             <section class="screen" id="screen-bag">
                 <div class="bag-header">
-                    <h2>🎒 Mon sac</h2>
+                    <h2>Mon sac</h2>
                     <p>Tes objets et Pokéballs</p>
                 </div>
                 <div class="bag-grid">
                     <div class="bag-card">
-                        <div class="bag-card-icon">🔴</div>
+                        <div class="bag-card-icon item-pokeball" aria-hidden="true"></div>
                         <div class="bag-card-info">
                             <div class="bag-card-name">Pokéball</div>
-                            <div class="bag-card-desc">Permet de capturer un Pokémon sauvage</div>
+                            <div class="bag-card-desc">Permet de capturer un Pokémon sauvage.</div>
                         </div>
-                        <div class="bag-card-count">x<span id="pokeball-count-hub">5</span></div>
+                        <div class="bag-card-count">×<span id="pokeball-count-hub">5</span></div>
                     </div>
                     <div class="bag-card disabled">
-                        <div class="bag-card-icon">💊</div>
+                        <div class="bag-card-icon item-potion" aria-hidden="true"></div>
                         <div class="bag-card-info">
                             <div class="bag-card-name">Potion</div>
                             <div class="bag-card-desc">Bientôt disponible</div>
@@ -266,7 +301,7 @@
                         <div class="bag-card-count">—</div>
                     </div>
                     <div class="bag-card disabled">
-                        <div class="bag-card-icon">🟣</div>
+                        <div class="bag-card-icon item-superball" aria-hidden="true"></div>
                         <div class="bag-card-info">
                             <div class="bag-card-name">Super Ball</div>
                             <div class="bag-card-desc">Bientôt disponible</div>
@@ -276,10 +311,21 @@
                 </div>
             </section>
 
-            <!-- Écran 6 : Fin de partie -->
+            <!-- Écran : Notes de patch -->
+            <section class="screen" id="screen-patchnotes">
+                <div class="patchnotes-header">
+                    <h2>Notes de patch</h2>
+                    <p>L'historique des mises à jour de PokeMOCA et la roadmap.</p>
+                </div>
+                <div class="patchnotes-content" id="patchnotes-content">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </section>
+
+            <!-- Écran : Fin de partie -->
             <section class="screen" id="screen-end">
                 <div class="end-card" id="end-card">
-                    <div class="end-icon" id="end-icon">🏆</div>
+                    <div class="end-icon" id="end-icon">▲</div>
                     <h2 id="end-title">Bravo, Champion !</h2>
                     <p id="end-message">Tu as battu tous tes adversaires.</p>
                     <button class="btn btn-primary" id="btn-restart">Recommencer une aventure</button>
