@@ -1,10 +1,63 @@
 // Version du jeu — source de vérité unique
-export const VERSION = '1.2.0';
-export const CODENAME = 'Kanto & Progression';
+export const VERSION = '1.3.0';
+export const CODENAME = 'Pokédex & Liberté';
 export const RELEASE_DATE = '2026-05-07';
 
 // Notes de patch — affichées dans l'onglet dédié
 export const PATCH_NOTES = [
+    {
+        version: '1.3.0',
+        codename: 'Pokédex & Liberté',
+        date: '2026-05-07',
+        sections: [
+            {
+                title: '📖 Pokédex fonctionnel',
+                items: [
+                    'Nouvel onglet Pokédex avec les 151 Pokémon de Kanto',
+                    'Silhouettes par défaut, sprites colorés une fois capturés',
+                    'Compteur de progression vus / capturés',
+                    'Filtres : tous, capturés, vus, non rencontrés'
+                ]
+            },
+            {
+                title: '🗺️ Vraie carte de Kanto',
+                items: [
+                    'Carte revue avec positionnement géographique des routes',
+                    'Pellet Town au sud, Cerulean au nord, comme dans le jeu original',
+                    'Lignes de connexion entre routes',
+                    'Code couleur pour les zones débloquées / verrouillées'
+                ]
+            },
+            {
+                title: '⚙️ Options personnalisables',
+                items: [
+                    'Mode sombre / mode clair',
+                    'Autobattle activé par défaut',
+                    'Autocapture sur les Pokémon non encore enregistrés au Pokédex',
+                    'Vitesse des animations de combat (lent / normal / rapide)',
+                    'Préférences sauvegardées entre les sessions'
+                ]
+            },
+            {
+                title: '🔁 Chaînes de combats',
+                items: [
+                    'Choisis le nombre de combats à enchaîner sur une route (×1 à ×N)',
+                    'La limite augmente avec ta progression : ×3 au début, ×4, ×5, ×6, ×7',
+                    'Soin automatique entre les combats désactivé : la tension monte',
+                    'Interrompu si toute ton équipe est K.O.'
+                ]
+            },
+            {
+                title: '🎨 Refonte visuelle',
+                items: [
+                    'Palette colorée inspirée des jeux Pokémon (rouge / bleu / jaune)',
+                    'Coins arrondis et formes plus douces',
+                    'Notes de patch déplacées tout en bas de la sidebar',
+                    'Multijoueur retiré (focus sur l\'expérience solo)'
+                ]
+            }
+        ]
+    },
     {
         version: '1.2.0',
         codename: 'Kanto & Progression',
@@ -15,41 +68,34 @@ export const PATCH_NOTES = [
                 items: [
                     'Nouvel onglet « Carte » avec 6 zones explorables',
                     'Chaque route affiche les Pokémon capturables et leur niveau',
-                    'Routes débloquées au fil des victoires (Route 1 → Forêt de Jade → Mont Sélénite…)',
+                    'Routes débloquées au fil des victoires',
                     'Pokémon sauvages tirés du pool spécifique à chaque zone'
                 ]
             },
             {
                 title: '⭐ Pokémon shinies',
                 items: [
-                    'Chaque Pokémon sauvage a une chance d\'être shiny (1/8192, taux Gen 1)',
-                    'Sprites alternatifs colorés et animation d\'apparition',
-                    'Notification spéciale lors d\'une rencontre shiny'
+                    'Chaque Pokémon sauvage a une chance d\'être shiny (1/8192)',
+                    'Sprites alternatifs colorés et animation d\'apparition'
                 ]
             },
             {
                 title: '📈 Système d\'expérience',
                 items: [
-                    'Tes Pokémon gagnent de l\'EXP après chaque combat',
-                    'Montée de niveau automatique avec recalcul des stats',
-                    'Barre d\'EXP visible sur chaque membre de l\'équipe',
-                    'Plus l\'adversaire est fort, plus l\'EXP gagnée est importante'
+                    'EXP gagnée après chaque combat, montée de niveau automatique',
+                    'Barre d\'EXP visible sur chaque membre de l\'équipe'
                 ]
             },
             {
                 title: '🤖 Autobattle',
                 items: [
-                    'Bouton « Auto » en combat : ton Pokémon choisit l\'attaque la plus efficace',
-                    'Idéal pour enchaîner les combats rapidement',
-                    'Activable/désactivable à tout moment'
+                    'Bouton « Auto » en combat : ton Pokémon choisit l\'attaque la plus efficace'
                 ]
             },
             {
                 title: '🎨 Sprites animés',
                 items: [
-                    'Sprites animés tirés de Pokémon Showdown',
-                    'Animations en boucle pendant les combats',
-                    'Variantes shinies pour chaque Pokémon'
+                    'Sprites animés tirés de Pokémon Showdown'
                 ]
             },
             {
@@ -57,17 +103,7 @@ export const PATCH_NOTES = [
                 items: [
                     'Réorganisation de l\'équipe possible (boutons ↑ / ↓)',
                     'Suppression des PP : enchaîne les attaques sans limite',
-                    'Sprite d\'objet pour la Pokéball',
                     'Bug corrigé : blocage au 2ème combat après une capture'
-                ]
-            },
-            {
-                title: '✨ Refonte visuelle',
-                items: [
-                    'Palette plus sobre et professionnelle (slate / accent rouge)',
-                    'Typographie épurée, moins d\'emojis dans les libellés',
-                    'Cartes aux contours nets, ombres plus discrètes',
-                    'Lisibilité améliorée sur les écrans denses'
                 ]
             }
         ]
@@ -81,10 +117,9 @@ export const PATCH_NOTES = [
                 title: 'Équilibrage',
                 items: [
                     'Difficulté réduite sur les premiers combats',
-                    'Pokémon sauvages désormais niveau 2-3 (au lieu de 4-5)',
-                    'Champion niveau 7 (au lieu de 8)',
-                    'Attaques ennemies : -25% de dégâts',
-                    'Affichage du niveau du Pokémon sauvage dans sa fiche'
+                    'Pokémon sauvages désormais niveau 2-3',
+                    'Champion niveau 7',
+                    'Attaques ennemies : -25% de dégâts'
                 ]
             },
             {
@@ -92,17 +127,7 @@ export const PATCH_NOTES = [
                 items: [
                     'Choix du mode de jeu : Normal ou Hardcore',
                     'Système de capture avec 5 Pokéballs au départ',
-                    'Centre Pokémon disponible dès le hub',
-                    'Onglet Sac activé après le choix du starter',
-                    'Menu de combat : Attaque / Sac / Fuite'
-                ]
-            },
-            {
-                title: 'Interface',
-                items: [
-                    'Positions des Pokémon inversées en combat (vue classique)',
-                    'Arène agrandie (320 → 460 px) et sprites plus grands',
-                    'Localisation française complète (Pokémon, attaques, types)'
+                    'Centre Pokémon disponible dès le hub'
                 ]
             }
         ]
@@ -115,13 +140,10 @@ export const PATCH_NOTES = [
             {
                 title: 'Lancement initial',
                 items: [
-                    'Choix du nom du dresseur',
-                    'Sélection du starter (Bulbizarre / Salamèche / Carapuce)',
-                    'Easter egg : nom Sacha / Red / Ash → Pikachu en starter',
+                    'Choix du nom du dresseur et du starter',
+                    'Easter egg : nom Sacha / Red / Ash → Pikachu',
                     'Système de combat tour par tour (dégâts, types, critiques, STAB)',
-                    'Hub Route 1 + Champion final',
-                    'Interface complète avec onglets futurs grisés',
-                    'Données 100% issues de la PokeAPI (Gen 1 uniquement)'
+                    'Données 100% PokeAPI (Gen 1 uniquement)'
                 ]
             }
         ]
@@ -130,15 +152,6 @@ export const PATCH_NOTES = [
 
 // Roadmap des versions à venir
 export const ROADMAP = [
-    {
-        version: '1.3',
-        codename: 'Pokédex',
-        items: [
-            'Onglet Pokédex fonctionnel avec progression',
-            'Statistiques de capture (vus / capturés)',
-            'Fiche détaillée par Pokémon'
-        ]
-    },
     {
         version: '1.4',
         codename: 'Économie',
@@ -162,8 +175,8 @@ export const ROADMAP = [
         codename: 'Ligue Pokémon',
         items: [
             'Conseil des 4 + Maître final',
-            'Multijoueur en ligne',
-            'Options de personnalisation'
+            'Combats contre les leaders d\'arène',
+            'Trophées et statistiques'
         ]
     }
 ];

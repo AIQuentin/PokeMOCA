@@ -206,6 +206,23 @@ export async function buildBattlePokemon(nameOrId, level = 5, opts = {}) {
 // Pool propre Gen 1 - Route 1 (legacy, conservé pour compatibilité)
 export const GEN1_WILD_POOL = ['pidgey', 'rattata', 'caterpie', 'weedle', 'spearow'];
 
+// Liste des IDs des 151 Pokémon de Gen 1 (pour le Pokédex)
+export const GEN1_IDS = Array.from({ length: 151 }, (_, i) => i + 1);
+
+// URL du sprite par ID (utilisée par le Pokédex pour les silhouettes)
+export function getDexSpriteUrl(id) {
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+}
+
+// Limite progressive de chaîne de combats selon la progression
+export function getMaxChainSize(battlesWon) {
+    if (battlesWon < 3) return 3;
+    if (battlesWon < 6) return 4;
+    if (battlesWon < 10) return 5;
+    if (battlesWon < 15) return 6;
+    return 7;
+}
+
 // Champion de fin (Pokémon plus costauds, toujours Gen 1)
 export const CHAMPION_POKEMON = ['onix', 'machop', 'geodude'];
 

@@ -1,5 +1,58 @@
 # Notes de patch — PokeMOCA
 
+## v1.3.0 — « Pokédex & Liberté » (2026-05-07)
+
+### 📖 Pokédex fonctionnel
+- Nouvel onglet **Pokédex** avec les **151 Pokémon de Kanto**
+- **Silhouettes par défaut**, sprites colorés une fois capturés
+- Compteur de progression **vus / capturés / 151**
+- Filtres : **Tous / Capturés / Vus uniquement / Inconnus**
+- Modal de détail au clic sur un Pokémon capturé
+- Marqueur **📖** affiché en combat sur les Pokémon déjà au Pokédex
+
+### 🗺️ Vraie carte de Kanto
+- Carte revue avec **positionnement géographique** des routes
+- Bourg Palette au sud, Cerulean au nord, comme dans le jeu original
+- **Lignes de connexion** entre les routes (pseudo-éléments CSS)
+- Code couleur pour les zones débloquées / verrouillées
+- Indicateur **⬆ NORD** pour bien se repérer
+
+### ⚙️ Options personnalisables
+- **Mode sombre / mode clair** (préférence sauvegardée)
+- **Autobattle activé par défaut** au début de chaque combat
+- **Autocapture** sur les Pokémon non encore enregistrés au Pokédex
+- **Vitesse de combat** : Lent / Normal / Rapide
+- Bouton **Effacer le Pokédex** pour repartir à zéro
+- Toutes les préférences persistent entre les sessions (localStorage)
+
+### 🔁 Chaînes de combats
+- Choisis le nombre de combats à enchaîner sur une route (×1 à ×N)
+- **Limite progressive** selon ta progression :
+  - <3 victoires → ×3 max
+  - <6 victoires → ×4
+  - <10 victoires → ×5
+  - <15 victoires → ×6
+  - 15+ victoires → ×7
+- **Pas de soin** entre les combats : la tension monte
+- Indicateur de chaîne en haut de l'arène
+- Interrompue si toute ton équipe est K.O.
+
+### 🎯 Autocapture
+- Active l'option pour qu'une Pokéball soit lancée automatiquement
+- Déclenchée uniquement sur les **Pokémon pas encore au Pokédex**
+- Nécessite d'avoir au moins une Pokéball dans le sac
+
+### 🎨 Refonte visuelle
+- Nouvelle **palette colorée** inspirée des jeux Pokémon
+  - Rouge Pokéball, bleu Dresseur, jaune Pikachu
+- **Coins arrondis** et formes plus douces (radius 12-16px)
+- Pattern subtil en arrière-plan
+- **Notes de patch déplacées tout en bas** de la sidebar
+- **Multijoueur retiré** de la sidebar (focus sur l'expérience solo)
+- Type badges aux **couleurs officielles** des jeux
+
+---
+
 ## v1.2.0 — « Kanto & Progression » (2026-05-07)
 
 ### 🗺️ Carte de Kanto
@@ -35,12 +88,6 @@
 - **Réorganisation de l'équipe** : déplace tes Pokémon avec ▲/▼
 - **Suppression des PP** : les attaques sont illimitées
 - Sprites des objets (Pokéball, Potion, Super Ball) en CSS pur
-
-### 🎨 Refonte visuelle
-- Nouvelle palette **professionnelle** (slate / accent rouge sobre)
-- Police **Inter** plus lisible
-- Sidebar repensée, badges, espacements affinés
-- Suppression des effets « enfantins » (gradients arc-en-ciel, emojis géants)
 
 ---
 
@@ -84,17 +131,11 @@
   - Table d'efficacité des types Gen 1
   - Coups critiques et bonus STAB
 - Hub Route 1 avec exploration et combat contre le Champion (3 victoires requises)
-- Interface complète avec onglets futurs grisés (Pokédex, Boutique, Box PC, Ligue, Multijoueur, Options)
 - Données 100% issues de la **PokeAPI** (Génération I uniquement, ID ≤ 151)
 
 ---
 
 ## 🗺️ Prochaines versions prévues
-
-### v1.3 — « Pokédex »
-- Onglet Pokédex fonctionnel avec progression
-- Capture qui enregistre le Pokémon dans le Pokédex
-- Filtres par type / route
 
 ### v1.4 — « Économie »
 - Boutique pour acheter des Pokéballs et des potions
@@ -104,9 +145,9 @@
 ### v1.5 — « Box & Switch »
 - Box PC pour stocker plus de 6 Pokémon
 - Changement de Pokémon en combat
-- Plusieurs Pokémon participent aux combats
+- Évolutions à un niveau seuil
 
 ### v2.0 — « Ligue Pokémon »
 - Conseil des 4 + Maître final
-- Multijoueur (combats en ligne)
-- Options de personnalisation
+- Combats contre les leaders d'arène
+- Trophées et statistiques

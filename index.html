@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://play.pokemonshowdown.com">
     <link rel="preconnect" href="https://raw.githubusercontent.com">
 </head>
-<body>
+<body data-theme="light">
     <div id="app">
         <!-- Sidebar avec onglets -->
         <aside class="sidebar">
@@ -29,15 +29,14 @@
                     <span class="nav-icon">🎒</span>
                     <span class="nav-label">Sac</span>
                 </button>
-                <button class="nav-item" data-tab="patchnotes">
-                    <span class="nav-icon">📝</span>
-                    <span class="nav-label">Notes de patch</span>
-                    <span class="badge-new" id="badge-new" hidden>NEW</span>
-                </button>
-                <button class="nav-item disabled" title="Bientôt disponible">
+                <button class="nav-item" data-tab="pokedex" id="nav-pokedex">
                     <span class="nav-icon">📖</span>
                     <span class="nav-label">Pokédex</span>
-                    <span class="badge-soon">Soon</span>
+                    <span class="badge-count" id="dex-badge">0</span>
+                </button>
+                <button class="nav-item" data-tab="options">
+                    <span class="nav-icon">⚙</span>
+                    <span class="nav-label">Options</span>
                 </button>
                 <button class="nav-item disabled" title="Bientôt disponible">
                     <span class="nav-icon">🏪</span>
@@ -54,16 +53,6 @@
                     <span class="nav-label">Ligue</span>
                     <span class="badge-soon">Soon</span>
                 </button>
-                <button class="nav-item disabled" title="Bientôt disponible">
-                    <span class="nav-icon">🌐</span>
-                    <span class="nav-label">Multijoueur</span>
-                    <span class="badge-soon">Soon</span>
-                </button>
-                <button class="nav-item disabled" title="Bientôt disponible">
-                    <span class="nav-icon">⚙</span>
-                    <span class="nav-label">Options</span>
-                    <span class="badge-soon">Soon</span>
-                </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="trainer-card" id="trainer-card" hidden>
@@ -73,7 +62,12 @@
                         <div class="trainer-meta" id="trainer-mode-display">Dresseur</div>
                     </div>
                 </div>
-                <div class="version" id="version-display">v1.2.0 — Kanto & Progression</div>
+                <button class="nav-item nav-item-mini" data-tab="patchnotes">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-label">Notes de patch</span>
+                    <span class="badge-new" id="badge-new" hidden>NEW</span>
+                </button>
+                <div class="version" id="version-display">v1.3.0 — Pokédex & Liberté</div>
             </div>
         </aside>
 
@@ -87,7 +81,7 @@
                 </div>
                 <div class="mode-grid">
                     <div class="mode-card" data-mode="normal">
-                        <div class="mode-icon">●</div>
+                        <div class="mode-icon">😊</div>
                         <h3>Normal</h3>
                         <p class="mode-desc">
                             Mode détendu pour découvrir le jeu.<br>
@@ -99,7 +93,7 @@
                         </div>
                     </div>
                     <div class="mode-card" data-mode="hardcore">
-                        <div class="mode-icon">◆</div>
+                        <div class="mode-icon">💀</div>
                         <h3>Hardcore</h3>
                         <p class="mode-desc">
                             Pour les vrais dresseurs.<br>
@@ -116,7 +110,7 @@
             <!-- Écran 1 : nom du dresseur -->
             <section class="screen" id="screen-welcome">
                 <div class="welcome-card">
-                    <h1 class="welcome-title">Bienvenue dans le monde des Pokémon</h1>
+                    <h1 class="welcome-title">Bienvenue dans le monde des Pokémon !</h1>
                     <p class="welcome-subtitle">
                         Je suis le <strong>Professeur Chen</strong>. Avant de commencer ton aventure,
                         dis-moi… comment t'appelles-tu&nbsp;?
@@ -165,23 +159,36 @@
                     </div>
                     <div class="hub-actions">
                         <div class="action-card primary" id="action-explore">
+                            <div class="action-icon">🌿</div>
                             <div class="action-title">Explorer cette zone</div>
                             <div class="action-desc">Trouver un Pokémon sauvage</div>
                         </div>
                         <div class="action-card" id="action-map">
+                            <div class="action-icon">🗺</div>
                             <div class="action-title">Changer de zone</div>
                             <div class="action-desc">Voir la carte de Kanto</div>
                         </div>
                         <div class="action-card" id="action-heal">
+                            <div class="action-icon">💖</div>
                             <div class="action-title">Centre Pokémon</div>
                             <div class="action-desc">Soigner toute ton équipe</div>
                         </div>
                         <div class="action-card" id="action-champion">
+                            <div class="action-icon">🏆</div>
                             <div class="action-title">Affronter le Champion</div>
                             <div class="action-desc" id="champion-desc">Bats 3 Pokémon sauvages d'abord</div>
                         </div>
                     </div>
                 </div>
+
+                <div class="hub-chain">
+                    <div class="chain-label">
+                        <span>Chaîne de combats</span>
+                        <span class="chain-hint" id="chain-hint">Lance plusieurs combats à la suite</span>
+                    </div>
+                    <div class="chain-controls" id="chain-controls"></div>
+                </div>
+
                 <div class="hub-progress">
                     <div class="progress-label">Progression : <span id="battles-won">0</span> / 3 victoires avant le Champion</div>
                     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -192,10 +199,10 @@
             <section class="screen" id="screen-map">
                 <div class="map-header">
                     <h2>Carte de Kanto</h2>
-                    <p>Choisis une zone à explorer. Chaque route abrite ses propres Pokémon.</p>
+                    <p>Les routes de Kanto te tendent les bras. Choisis ta destination.</p>
                 </div>
-                <div class="route-grid" id="route-grid">
-                    <div class="route-loading">Chargement des routes…</div>
+                <div class="kanto-map" id="kanto-map">
+                    <div class="route-loading">Chargement de la carte…</div>
                 </div>
             </section>
 
@@ -208,6 +215,7 @@
                             <div class="pokemon-name-row">
                                 <span class="pokemon-name" id="enemy-name">—</span>
                                 <span class="shiny-star" id="enemy-shiny" hidden>★</span>
+                                <span class="dex-mark" id="enemy-dex-mark" hidden title="Déjà au Pokédex">📖</span>
                             </div>
                             <div class="pokemon-level" id="enemy-level">Niv. ?</div>
                             <div class="hp-container">
@@ -246,6 +254,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="chain-indicator" id="chain-indicator" hidden>
+                        Chaîne : <span id="chain-current">1</span> / <span id="chain-total">1</span>
+                    </div>
                 </div>
                 <div class="battle-ui">
                     <div class="battle-log" id="battle-log">
@@ -254,10 +265,10 @@
 
                     <!-- Menu principal en combat -->
                     <div class="battle-menu" id="battle-menu">
-                        <button class="menu-btn" data-action="attack">Attaque</button>
-                        <button class="menu-btn" data-action="auto" id="btn-autobattle">Auto</button>
-                        <button class="menu-btn" data-action="bag">Sac</button>
-                        <button class="menu-btn" data-action="flee">Fuite</button>
+                        <button class="menu-btn menu-attack" data-action="attack">⚔ Attaque</button>
+                        <button class="menu-btn menu-auto" data-action="auto" id="btn-autobattle">🤖 Auto</button>
+                        <button class="menu-btn menu-bag" data-action="bag">🎒 Sac</button>
+                        <button class="menu-btn menu-flee" data-action="flee">🏃 Fuite</button>
                     </div>
 
                     <!-- Sous-menu attaques -->
@@ -311,6 +322,109 @@
                 </div>
             </section>
 
+            <!-- Écran : Pokédex -->
+            <section class="screen" id="screen-pokedex">
+                <div class="pokedex-header">
+                    <h2>Pokédex de Kanto</h2>
+                    <p>Capture les 151 Pokémon de la région.</p>
+                    <div class="pokedex-stats">
+                        <div class="pokedex-stat">
+                            <span class="pokedex-stat-num" id="dex-caught">0</span>
+                            <span class="pokedex-stat-label">capturés</span>
+                        </div>
+                        <div class="pokedex-stat">
+                            <span class="pokedex-stat-num" id="dex-seen">0</span>
+                            <span class="pokedex-stat-label">vus</span>
+                        </div>
+                        <div class="pokedex-stat">
+                            <span class="pokedex-stat-num">/ 151</span>
+                            <span class="pokedex-stat-label">total</span>
+                        </div>
+                    </div>
+                    <div class="pokedex-filters" id="pokedex-filters">
+                        <button class="dex-filter active" data-filter="all">Tous</button>
+                        <button class="dex-filter" data-filter="caught">Capturés</button>
+                        <button class="dex-filter" data-filter="seen">Vus uniquement</button>
+                        <button class="dex-filter" data-filter="missing">Inconnus</button>
+                    </div>
+                </div>
+                <div class="pokedex-grid" id="pokedex-grid"></div>
+            </section>
+
+            <!-- Écran : Options -->
+            <section class="screen" id="screen-options">
+                <div class="options-header">
+                    <h2>Options</h2>
+                    <p>Personnalise ton expérience PokeMOCA.</p>
+                </div>
+                <div class="options-list">
+
+                    <div class="option-card">
+                        <div class="option-info">
+                            <div class="option-name">🌙 Thème</div>
+                            <div class="option-desc">Mode clair pour la journée, mode sombre pour le soir.</div>
+                        </div>
+                        <div class="option-control">
+                            <div class="theme-toggle">
+                                <button class="theme-btn" data-theme="light">☀ Clair</button>
+                                <button class="theme-btn" data-theme="dark">🌙 Sombre</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="option-card">
+                        <div class="option-info">
+                            <div class="option-name">🤖 Autobattle par défaut</div>
+                            <div class="option-desc">Active automatiquement l'autobattle au début de chaque combat.</div>
+                        </div>
+                        <div class="option-control">
+                            <label class="switch">
+                                <input type="checkbox" id="opt-autobattle">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-card">
+                        <div class="option-info">
+                            <div class="option-name">🎯 Autocapture</div>
+                            <div class="option-desc">Lance automatiquement une Pokéball quand tu rencontres un Pokémon non encore enregistré au Pokédex (si tu en as).</div>
+                        </div>
+                        <div class="option-control">
+                            <label class="switch">
+                                <input type="checkbox" id="opt-autocapture">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-card">
+                        <div class="option-info">
+                            <div class="option-name">⚡ Vitesse de combat</div>
+                            <div class="option-desc">Ajuste la rapidité des animations et des messages.</div>
+                        </div>
+                        <div class="option-control">
+                            <div class="speed-toggle">
+                                <button class="speed-btn" data-speed="slow">Lent</button>
+                                <button class="speed-btn" data-speed="normal">Normal</button>
+                                <button class="speed-btn" data-speed="fast">Rapide</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="option-card danger">
+                        <div class="option-info">
+                            <div class="option-name">🗑 Effacer le Pokédex</div>
+                            <div class="option-desc">Réinitialise toutes les données du Pokédex (capturés et vus). Action définitive.</div>
+                        </div>
+                        <div class="option-control">
+                            <button class="btn btn-secondary btn-mini" id="btn-reset-dex">Effacer</button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
             <!-- Écran : Notes de patch -->
             <section class="screen" id="screen-patchnotes">
                 <div class="patchnotes-header">
@@ -332,6 +446,12 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal Pokédex -->
+    <div class="modal" id="dex-modal" hidden>
+        <div class="modal-backdrop" data-close="modal"></div>
+        <div class="modal-content" id="dex-modal-content"></div>
     </div>
 
     <div class="toast" id="toast" hidden></div>

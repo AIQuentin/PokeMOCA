@@ -1,13 +1,71 @@
 // Point d'entrée principal de PokeMOCA
 import {
     buildBattlePokemon, STARTERS, PIKACHU_STARTER_NAME, TYPE_FR,
-    ROUTES, getRoutePokemonPreview, showdownSprites
+    ROUTES, getRoutePokemonPreview, showdownSprites,
+    GEN1_IDS, getDexSpriteUrl, getMaxChainSize
 } from './api.js';
 import {
     calculateDamage, attackHits, spawnWildPokemon, spawnChampion,
     pickEnemyMove, pickBestMove, attemptCapture, awardExp
 } from './battle.js';
 import { VERSION, CODENAME, PATCH_NOTES, ROADMAP } from './version.js';
+
+// === Persistance ===
+const STORAGE_KEYS = {
+    pokedex: 'pokemoca_pokedex',
+    seen: 'pokemoca_pokedex_seen',
+    options: 'pokemoca_options'
+};
+
+function loadPokedex() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.pokedex);
+        if (!raw) return new Map();
+        const arr = JSON.parse(raw);
+        return new Map(arr.map(e => [e.id, e]));
+    } catch { return new Map(); }
+}
+
+function savePokedex(map) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.pokedex, JSON.stringify([...map.values()]));
+    } catch {}
+}
+
+function loadSeen() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.seen);
+        if (!raw) return new Set();
+        return new Set(JSON.parse(raw));
+    } catch { return new Set(); }
+}
+
+function saveSeen(set) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.seen, JSON.stringify([...set]));
+    } catch {}
+}
+
+const DEFAULT_OPTIONS = {
+    theme: 'light',
+    autoBattleDefault: false,
+    autoCapture: false,
+    battleSpeed: 'normal'
+};
+
+function loadOptions() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.options);
+        if (!raw) return { ...DEFAULT_OPTIONS };
+        return { ...DEFAULT_OPTIONS, ...JSON.parse(raw) };
+    } catch { return { ...DEFAULT_OPTIONS }; }
+}
+
+function saveOptions(opts) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.options, JSON.stringify(opts));
+    } catch {}
+}
 
 // État global du jeu
 const state = {
@@ -22,20 +80,53 @@ const state = {
     inventory: { pokeballs: 5 },
     currentRoute: 'route-1',
     autobattle: false,
-    reorderMode: false
+    reorderMode: false,
+    pokedex: loadPokedex(),
+    pokedexSeen: loadSeen(),
+    options: loadOptions(),
+    chain: { remaining: 0, total: 0 },
+    chainSize: 1,
+    dexFilter: 'all'
 };
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
+// === Vitesse de combat ===
+function speedMultiplier() {
+    if (state.options.battleSpeed === 'slow') return 1.6;
+    if (state.options.battleSpeed === 'fast') return 0.45;
+    return 1;
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms * speedMultiplier()));
+}
+
+// === Thème ===
+function applyTheme(theme) {
+    document.body.dataset.theme = theme;
+    $$('.theme-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.theme === theme);
+    });
+}
+
+function applySpeedUI() {
+    $$('.speed-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.speed === state.options.battleSpeed);
+    });
+}
+
 function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
     $(`#${id}`).classList.add('active');
     $$('.nav-item').forEach(n => n.classList.remove('active'));
-    if (id === 'screen-bag') $('#nav-bag').classList.add('active');
-    else if (id === 'screen-map') $('#nav-map').classList.add('active');
-    else if (id === 'screen-patchnotes') $('.nav-item[data-tab="patchnotes"]').classList.add('active');
-    else $('.nav-item[data-tab="game"]').classList.add('active');
+    if (id === 'screen-bag') $('#nav-bag')?.classList.add('active');
+    else if (id === 'screen-map') $('#nav-map')?.classList.add('active');
+    else if (id === 'screen-pokedex') $('#nav-pokedex')?.classList.add('active');
+    else if (id === 'screen-options') $('.nav-item[data-tab="options"]')?.classList.add('active');
+    else if (id === 'screen-patchnotes') $('.nav-item[data-tab="patchnotes"]')?.classList.add('active');
+    else $('.nav-item[data-tab="game"]')?.classList.add('active');
 }
 
 function showToast(message, duration = 4000) {
@@ -94,6 +185,11 @@ function setBagAvailable(available) {
             navBtn.classList.add('disabled');
         }
     });
+}
+
+function updateDexBadge() {
+    const badge = $('#dex-badge');
+    if (badge) badge.textContent = state.pokedex.size;
 }
 
 // === Étape 0 : choix du mode ===
@@ -211,9 +307,32 @@ function createStarterCard(pokemon, meta) {
 
 function chooseStarter(pokemon, displayName) {
     state.team = [pokemon];
+    // Le starter rejoint le Pokédex
+    addToPokedex(pokemon);
     showToast(`Tu as choisi ${displayName}.`);
     setBagAvailable(true);
     enterHub();
+}
+
+// === Pokédex helpers ===
+function addToPokedex(pokemon) {
+    const existing = state.pokedex.get(pokemon.id);
+    state.pokedex.set(pokemon.id, {
+        id: pokemon.id,
+        nameFr: pokemon.nameFr || pokemon.name,
+        name: pokemon.name,
+        types: pokemon.types,
+        isShiny: existing?.isShiny || pokemon.isShiny || false
+    });
+    state.pokedexSeen.add(pokemon.id);
+    savePokedex(state.pokedex);
+    saveSeen(state.pokedexSeen);
+    updateDexBadge();
+}
+
+function markSeen(pokemon) {
+    state.pokedexSeen.add(pokemon.id);
+    saveSeen(state.pokedexSeen);
 }
 
 // === Étape 3 : Hub ===
@@ -251,6 +370,7 @@ function refreshHub() {
     }
 
     updateInventoryDisplay();
+    renderChainControls();
 }
 
 function renderRoster() {
@@ -290,7 +410,6 @@ function renderRoster() {
         roster.appendChild(div);
     });
 
-    // Wire reorder buttons
     if (state.reorderMode) {
         $$('.reorder-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -314,7 +433,42 @@ $('#btn-toggle-reorder').addEventListener('click', () => {
     renderRoster();
 });
 
-// Vérifie si toute l'équipe est K.O.
+// === Chaînes de combats ===
+function renderChainControls() {
+    const container = $('#chain-controls');
+    if (!container) return;
+    const max = getMaxChainSize(state.battlesWon);
+    container.innerHTML = '';
+
+    if (state.chainSize > max) state.chainSize = max;
+
+    for (let i = 1; i <= 7; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'chain-btn' + (state.chainSize === i ? ' active' : '');
+        btn.textContent = `×${i}`;
+        if (i > max) {
+            btn.disabled = true;
+            const need = i === 4 ? 3 : i === 5 ? 6 : i === 6 ? 10 : 15;
+            btn.title = `Débloqué à ${need} victoires`;
+        } else {
+            btn.addEventListener('click', () => {
+                state.chainSize = i;
+                renderChainControls();
+            });
+        }
+        container.appendChild(btn);
+    }
+
+    const hint = $('#chain-hint');
+    if (hint) {
+        if (state.chainSize === 1) {
+            hint.textContent = 'Combat unique';
+        } else {
+            hint.textContent = `${state.chainSize} combats sans soin`;
+        }
+    }
+}
+
 function isTeamWiped() {
     return state.team.every(p => p.currentHp <= 0);
 }
@@ -336,6 +490,9 @@ $('#action-explore').addEventListener('click', async () => {
         showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
         return;
     }
+    // Démarre la chaîne
+    state.chain.total = state.chainSize;
+    state.chain.remaining = state.chainSize;
     await startBattle('wild');
 });
 
@@ -361,16 +518,17 @@ $('#action-champion').addEventListener('click', async () => {
         showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
         return;
     }
+    state.chain.total = 0;
+    state.chain.remaining = 0;
     await startBattle('champion');
 });
 
 // === Carte de Kanto ===
 async function showMapScreen() {
     showScreen('screen-map');
-    const grid = $('#route-grid');
+    const grid = $('#kanto-map');
     grid.innerHTML = '<div class="route-loading">Chargement des zones…</div>';
 
-    // Charge les previews en parallèle
     const previews = await Promise.all(
         ROUTES.map(r => getRoutePokemonPreview(r.pool))
     );
@@ -383,6 +541,7 @@ async function showMapScreen() {
         card.className = 'route-card'
             + (isCurrent ? ' current' : '')
             + (!unlocked ? ' locked' : '');
+        card.dataset.route = route.id;
 
         let tag = '';
         if (isCurrent) tag = '<span class="route-name-tag current">Actuelle</span>';
@@ -435,11 +594,24 @@ async function startBattle(mode) {
     $('#battle-log').innerHTML = '';
     $('#battle-actions').innerHTML = '';
 
-    // BUG FIX v1.2 : on s'assure que les boutons sont bien activés
     enableBattleButtons();
     $('#use-pokeball').disabled = state.inventory.pokeballs <= 0;
 
     showBattleMenu();
+
+    // Indicateur de chaîne
+    const chainIndicator = $('#chain-indicator');
+    if (mode === 'wild' && state.chain.total > 1) {
+        const current = state.chain.total - state.chain.remaining + 1;
+        $('#chain-current').textContent = current;
+        $('#chain-total').textContent = state.chain.total;
+        chainIndicator.hidden = false;
+    } else {
+        chainIndicator.hidden = true;
+    }
+
+    // Autobattle par défaut
+    state.autobattle = state.options.autoBattleDefault;
 
     try {
         const enemy = mode === 'champion'
@@ -447,6 +619,9 @@ async function startBattle(mode) {
             : await spawnWildPokemon(state.currentRoute);
 
         state.currentBattle = { player, enemy, mode };
+
+        // Marqueur Pokédex (vu)
+        markSeen(enemy);
 
         const enemyName = enemy.nameFr || enemy.name;
         const playerName = player.nameFr || player.name;
@@ -460,6 +635,9 @@ async function startBattle(mode) {
         };
         $('#enemy-shiny').hidden = !enemy.isShiny;
         $('.pokemon-sprite.enemy').classList.toggle('shiny', !!enemy.isShiny);
+
+        // Marque "déjà au Pokédex"
+        $('#enemy-dex-mark').hidden = !state.pokedex.has(enemy.id);
 
         $('#player-name').textContent = playerName;
         $('#player-level').textContent = `Niv. ${player.level}`;
@@ -484,10 +662,20 @@ async function startBattle(mode) {
             logBattle(intro);
         }
 
-        // Réinitialise le toggle autobattle visuellement
         $('#btn-autobattle').classList.toggle('active', state.autobattle);
 
-        // Si autobattle actif, lance automatiquement
+        // Autocapture : si activée, jamais capturé, et pokéballs dispo
+        if (mode === 'wild'
+            && state.options.autoCapture
+            && !state.pokedex.has(enemy.id)
+            && state.inventory.pokeballs > 0) {
+            await delay(700);
+            logBattle(`Autocapture : ${enemyName} n'est pas encore au Pokédex.`, 'exp-msg');
+            await delay(400);
+            await throwPokeball();
+            return;
+        }
+
         if (state.autobattle) {
             await delay(700);
             const move = pickBestMove(player, enemy);
@@ -539,7 +727,6 @@ function toggleAutobattle() {
         ? 'Autobattle activé : ton Pokémon attaque automatiquement.'
         : 'Autobattle désactivé.');
 
-    // Si activé pendant un combat, lance l'attaque tout de suite
     if (state.autobattle && state.inBattle && state.currentBattle) {
         const { player, enemy } = state.currentBattle;
         if (player.currentHp > 0 && enemy.currentHp > 0) {
@@ -695,6 +882,7 @@ async function throwPokeball() {
 }
 
 function captureSuccess(enemy) {
+    addToPokedex(enemy);
     state.inBattle = false;
     state.currentBattle = null;
     enableBattleButtons();
@@ -704,13 +892,11 @@ function captureSuccess(enemy) {
         const star = enemy.isShiny ? ' ★ shiny' : '';
         showToast(`${enemy.nameFr || enemy.name}${star} rejoint ton équipe !`);
     } else {
-        showToast(`Ton équipe est pleine. Le Pokémon est relâché.`);
+        showToast(`Ton équipe est pleine. Le Pokémon est ajouté au Pokédex et relâché.`);
     }
     state.battlesWon++;
-    setTimeout(() => {
-        refreshHub();
-        showScreen('screen-hub');
-    }, 1400);
+    // Décrémente la chaîne
+    advanceChain();
 }
 
 // === Fuite ===
@@ -725,6 +911,8 @@ async function attemptFlee() {
     await delay(800);
     state.inBattle = false;
     state.currentBattle = null;
+    state.chain.remaining = 0;
+    state.chain.total = 0;
     enableBattleButtons();
     showScreen('screen-hub');
     refreshHub();
@@ -739,7 +927,6 @@ async function checkBattleEnd() {
         logBattle(`${enemyName} est K.O. !`);
         await delay(700);
 
-        // Gain d'EXP (sauf champion qui termine la partie)
         if (mode !== 'champion') {
             const { gain, levelUps } = awardExp(player, enemy);
             logBattle(`${player.nameFr || player.name} gagne ${gain} EXP.`, 'exp-msg');
@@ -769,7 +956,6 @@ async function checkBattleEnd() {
     enableBattleButtons();
     showBattleMenu();
 
-    // Si autobattle actif, on enchaîne automatiquement
     if (state.autobattle) {
         await delay(500);
         const move = pickBestMove(player, enemy);
@@ -790,11 +976,11 @@ async function endBattle(outcome) {
             return;
         }
         state.battlesWon++;
-        setTimeout(() => {
-            refreshHub();
-            showScreen('screen-hub');
-        }, 800);
+        advanceChain();
     } else {
+        // Défaite : interrompt la chaîne
+        state.chain.remaining = 0;
+        state.chain.total = 0;
         if (isTeamWiped()) {
             if (state.mode === 'hardcore') {
                 showEnd('hardcore-loss');
@@ -812,6 +998,23 @@ async function endBattle(outcome) {
                 showScreen('screen-hub');
             }, 1100);
         }
+    }
+}
+
+// Avance dans la chaîne de combats : enchaîne ou retourne au hub
+function advanceChain() {
+    if (state.chain.remaining > 1 && !isTeamWiped()) {
+        state.chain.remaining--;
+        setTimeout(async () => {
+            await startBattle('wild');
+        }, 900);
+    } else {
+        state.chain.remaining = 0;
+        state.chain.total = 0;
+        setTimeout(() => {
+            refreshHub();
+            showScreen('screen-hub');
+        }, 800);
     }
 }
 
@@ -845,6 +1048,8 @@ $('#btn-restart').addEventListener('click', () => {
     state.currentRoute = 'route-1';
     state.autobattle = false;
     state.reorderMode = false;
+    state.chain = { remaining: 0, total: 0 };
+    state.chainSize = 1;
     $('#trainer-name').value = '';
     $('#trainer-card').hidden = true;
     setBagAvailable(false);
@@ -870,6 +1075,11 @@ $$('.nav-item').forEach(item => {
             showScreen('screen-bag');
         } else if (tab === 'map') {
             showMapScreen();
+        } else if (tab === 'pokedex') {
+            renderPokedex();
+            showScreen('screen-pokedex');
+        } else if (tab === 'options') {
+            showScreen('screen-options');
         } else if (tab === 'patchnotes') {
             markVersionAsSeen();
             showScreen('screen-patchnotes');
@@ -877,8 +1087,143 @@ $$('.nav-item').forEach(item => {
     });
 });
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+// === Pokédex (écran) ===
+function renderPokedex() {
+    const grid = $('#pokedex-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    let caughtCount = 0;
+    let seenOnlyCount = 0;
+
+    GEN1_IDS.forEach(id => {
+        const caught = state.pokedex.get(id);
+        const seen = state.pokedexSeen.has(id);
+        if (caught) caughtCount++;
+        else if (seen) seenOnlyCount++;
+
+        // Filtre
+        if (state.dexFilter === 'caught' && !caught) return;
+        if (state.dexFilter === 'seen' && (caught || !seen)) return;
+        if (state.dexFilter === 'missing' && (caught || seen)) return;
+
+        const cell = document.createElement('div');
+        let cls = 'dex-cell';
+        if (caught) {
+            cls += ' caught';
+            if (caught.isShiny) cls += ' shiny-caught';
+        } else if (seen) {
+            cls += ' seen';
+        } else {
+            cls += ' missing';
+        }
+        cell.className = cls;
+
+        const num = String(id).padStart(3, '0');
+        const sprite = getDexSpriteUrl(id);
+        const name = caught ? caught.nameFr : (seen ? '???' : '???');
+        const shinyMark = caught?.isShiny ? '<span class="dex-cell-shiny">★</span>' : '';
+
+        cell.innerHTML = `
+            <div class="dex-cell-num">N°${num}</div>
+            <img src="${sprite}" alt="${name}" loading="lazy">
+            <div class="dex-cell-name">${name}</div>
+            ${shinyMark}
+        `;
+
+        if (caught) {
+            cell.addEventListener('click', () => showDexModal(caught));
+        }
+
+        grid.appendChild(cell);
+    });
+
+    $('#dex-caught').textContent = caughtCount;
+    $('#dex-seen').textContent = caughtCount + seenOnlyCount;
+}
+
+$$('.dex-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+        state.dexFilter = btn.dataset.filter;
+        $$('.dex-filter').forEach(b => b.classList.toggle('active', b === btn));
+        renderPokedex();
+    });
+});
+
+function showDexModal(entry) {
+    const modal = $('#dex-modal');
+    const content = $('#dex-modal-content');
+    const num = String(entry.id).padStart(3, '0');
+    const types = (entry.types || []).map(
+        t => `<span class="type-badge type-${t}">${TYPE_FR[t] || t}</span>`
+    ).join('');
+    const star = entry.isShiny ? '<span class="shiny-star" style="font-size:18px;margin-left:4px">★</span>' : '';
+
+    content.innerHTML = `
+        <img src="${getDexSpriteUrl(entry.id)}" alt="${entry.nameFr}">
+        <div class="modal-num">N°${num}</div>
+        <div class="modal-name">${entry.nameFr} ${star}</div>
+        <div class="modal-types">${types}</div>
+        <button class="btn btn-secondary modal-close" data-close="modal">Fermer</button>
+    `;
+    modal.hidden = false;
+
+    content.querySelector('[data-close="modal"]').addEventListener('click', closeDexModal);
+}
+
+function closeDexModal() {
+    $('#dex-modal').hidden = true;
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.matches('.modal-backdrop[data-close="modal"]')) closeDexModal();
+});
+
+// === Options ===
+$$('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        state.options.theme = btn.dataset.theme;
+        saveOptions(state.options);
+        applyTheme(state.options.theme);
+    });
+});
+
+$('#opt-autobattle')?.addEventListener('change', (e) => {
+    state.options.autoBattleDefault = e.target.checked;
+    saveOptions(state.options);
+});
+
+$('#opt-autocapture')?.addEventListener('change', (e) => {
+    state.options.autoCapture = e.target.checked;
+    saveOptions(state.options);
+});
+
+$$('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        state.options.battleSpeed = btn.dataset.speed;
+        saveOptions(state.options);
+        applySpeedUI();
+    });
+});
+
+$('#btn-reset-dex')?.addEventListener('click', () => {
+    if (!confirm('Effacer toutes les données du Pokédex ? Cette action est définitive.')) return;
+    state.pokedex.clear();
+    state.pokedexSeen.clear();
+    savePokedex(state.pokedex);
+    saveSeen(state.pokedexSeen);
+    updateDexBadge();
+    renderPokedex();
+    showToast('Pokédex réinitialisé.');
+});
+
+function applyOptionsToUI() {
+    applyTheme(state.options.theme);
+    applySpeedUI();
+    const ab = $('#opt-autobattle');
+    if (ab) ab.checked = state.options.autoBattleDefault;
+    const ac = $('#opt-autocapture');
+    if (ac) ac.checked = state.options.autoCapture;
 }
 
 // === Notes de patch ===
@@ -948,7 +1293,9 @@ function markVersionAsSeen() {
     $('#badge-new').hidden = true;
 }
 
-// Démarrage
+// === Démarrage ===
+applyOptionsToUI();
+updateDexBadge();
 setupVersionDisplay();
 renderPatchNotes();
 showScreen('screen-mode');
