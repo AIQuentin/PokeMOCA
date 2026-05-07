@@ -1,29 +1,35 @@
 // Point d'entrée principal de PokeMOCA
 import {
-    buildBattlePokemon, STARTERS, PIKACHU_STARTER_NAME
+    buildBattlePokemon, STARTERS, PIKACHU_STARTER_NAME, TYPE_FR
 } from './api.js';
 import {
-    calculateDamage, attackHits, spawnWildPokemon, spawnChampion, pickEnemyMove
+    calculateDamage, attackHits, spawnWildPokemon, spawnChampion,
+    pickEnemyMove, attemptCapture
 } from './battle.js';
 
 // État global du jeu
 const state = {
+    mode: null,         // 'normal' | 'hardcore'
     trainerName: '',
-    team: [],          // Équipe du joueur (max 6)
+    team: [],
     battlesWon: 0,
     requiredWins: 3,
     inBattle: false,
     currentBattle: null,
-    easterEggTriggered: false
+    easterEggTriggered: false,
+    inventory: { pokeballs: 5 }
 };
 
-// === Helpers DOM ===
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 function showScreen(id) {
     $$('.screen').forEach(s => s.classList.remove('active'));
     $(`#${id}`).classList.add('active');
+    // Met à jour la sidebar nav active
+    $$('.nav-item').forEach(n => n.classList.remove('active'));
+    if (id === 'screen-bag') $('#nav-bag').classList.add('active');
+    else $('.nav-item[data-tab="game"]').classList.add('active');
 }
 
 function showToast(message, duration = 4000) {
@@ -38,7 +44,6 @@ function logBattle(message) {
     const p = document.createElement('p');
     p.textContent = message;
     log.appendChild(p);
-    // Garde seulement les 4 derniers messages
     while (log.children.length > 4) log.removeChild(log.firstChild);
     log.scrollTop = log.scrollHeight;
 }
@@ -54,11 +59,40 @@ function updateHpBar(prefix, pokemon) {
     text.textContent = `${pokemon.currentHp}/${pokemon.maxHp}`;
 }
 
-// === Easter egg : déclenché par le nom du dresseur ===
 function isEasterEggName(name) {
     const normalized = name.trim().toLowerCase();
     return normalized === 'sacha' || normalized === 'red' || normalized === 'ash';
 }
+
+function updateInventoryDisplay() {
+    $('#pokeball-count').textContent = state.inventory.pokeballs;
+    $('#pokeball-count-hub').textContent = state.inventory.pokeballs;
+}
+
+function setBagAvailable(available) {
+    const navBag = $('#nav-bag');
+    if (available) {
+        navBag.disabled = false;
+        navBag.classList.remove('disabled');
+    } else {
+        navBag.disabled = true;
+        navBag.classList.add('disabled');
+    }
+}
+
+// === Étape 0 : choix du mode ===
+$$('.mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+        state.mode = card.dataset.mode;
+        const label = state.mode === 'hardcore' ? '💀 Hardcore' : '😊 Normal';
+        $('#trainer-mode-display').textContent = `Dresseur • ${label}`;
+        showScreen('screen-welcome');
+    });
+});
+
+$('#btn-back-mode').addEventListener('click', () => {
+    showScreen('screen-mode');
+});
 
 // === Étape 1 : nom du dresseur ===
 $('#btn-validate-name').addEventListener('click', () => {
@@ -73,22 +107,24 @@ $('#btn-validate-name').addEventListener('click', () => {
 
     if (isEasterEggName(name)) {
         state.easterEggTriggered = true;
-        // On affiche directement Pikachu comme starter unique offert
         showStarterScreenWithPikachu();
     } else {
         showStarterScreen();
     }
 });
 
-// Permet de valider avec Entrée
 $('#trainer-name').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#btn-validate-name').click();
 });
 
-// === Étape 2 : choix du starter (cas normal) ===
+// === Étape 2 : choix du starter ===
 async function showStarterScreen() {
     showScreen('screen-starter');
     const grid = $('#starter-grid');
+    grid.style.gridTemplateColumns = '';
+    grid.style.maxWidth = '';
+    $('.starter-header h2').textContent = 'Choisis ton premier Pokémon';
+    $('.starter-header p').textContent = 'Trois Pokémon t\'attendent dans le laboratoire. Lequel deviendra ton compagnon ?';
     grid.innerHTML = '<div class="starter-loading">Chargement des starters…</div>';
 
     try {
@@ -107,7 +143,6 @@ async function showStarterScreen() {
     }
 }
 
-// === Étape 2bis : easter egg Pikachu ===
 async function showStarterScreenWithPikachu() {
     showScreen('screen-starter');
     $('.starter-header h2').textContent = 'Tiens, c\'est toi…';
@@ -123,7 +158,7 @@ async function showStarterScreenWithPikachu() {
         const pikachu = await buildBattlePokemon(PIKACHU_STARTER_NAME, 5);
         const meta = {
             name: 'pikachu',
-            displayName: 'Pikachu',
+            displayName: pikachu.nameFr || 'Pikachu',
             desc: 'Comme dans l\'anime ! Ton compagnon électrique inséparable. Petit mais redoutable.'
         };
         grid.innerHTML = '';
@@ -140,23 +175,26 @@ function createStarterCard(pokemon, meta) {
     card.className = 'starter-card';
 
     const types = pokemon.types
-        .map(t => `<span class="type-badge type-${t}">${t}</span>`)
+        .map(t => `<span class="type-badge type-${t}">${TYPE_FR[t] || t}</span>`)
         .join('');
 
+    const displayName = meta.displayName || pokemon.nameFr || pokemon.name;
+
     card.innerHTML = `
-        <img src="${pokemon.sprite}" alt="${pokemon.name}" loading="lazy">
-        <div class="starter-name">${meta.displayName}</div>
+        <img src="${pokemon.sprite}" alt="${displayName}" loading="lazy">
+        <div class="starter-name">${displayName}</div>
         <div class="starter-types">${types}</div>
         <div class="starter-desc">${meta.desc}</div>
     `;
 
-    card.addEventListener('click', () => chooseStarter(pokemon));
+    card.addEventListener('click', () => chooseStarter(pokemon, displayName));
     return card;
 }
 
-function chooseStarter(pokemon) {
+function chooseStarter(pokemon, displayName) {
     state.team = [pokemon];
-    showToast(`Tu as choisi ${pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)} !`);
+    showToast(`Tu as choisi ${displayName} !`);
+    setBagAvailable(true);
     enterHub();
 }
 
@@ -172,23 +210,27 @@ function refreshHub() {
     roster.innerHTML = '';
     state.team.forEach(p => {
         const div = document.createElement('div');
-        div.className = 'team-member';
+        div.className = 'team-member' + (p.currentHp <= 0 ? ' fainted' : '');
+        const displayName = p.nameFr || p.name;
+        const badge = p.currentHp <= 0 ? '💀' : '';
         div.innerHTML = `
-            <img src="${p.sprite}" alt="${p.name}">
+            <img src="${p.sprite}" alt="${displayName}">
             <div class="team-member-info">
-                <div class="team-member-name">${p.name}</div>
+                <div class="team-member-name">${displayName}</div>
                 <div class="team-member-hp">PV ${p.currentHp}/${p.maxHp} • Niv. ${p.level}</div>
             </div>
+            <div class="team-member-badge">${badge}</div>
         `;
         roster.appendChild(div);
     });
+    $('#team-count').textContent = state.team.length;
 
     // Progression
     $('#battles-won').textContent = state.battlesWon;
     const pct = Math.min(100, (state.battlesWon / state.requiredWins) * 100);
     $('#progress-fill').style.width = `${pct}%`;
 
-    // Champion débloqué ?
+    // Champion
     const championCard = $('#action-champion');
     if (state.battlesWon >= state.requiredWins) {
         championCard.classList.add('primary');
@@ -199,12 +241,43 @@ function refreshHub() {
         $('#champion-desc').textContent =
             `Bats encore ${state.requiredWins - state.battlesWon} Pokémon sauvage(s)`;
     }
+
+    updateInventoryDisplay();
 }
 
-// Actions du hub
+// Vérifie si toute l'équipe est K.O.
+function isTeamWiped() {
+    return state.team.every(p => p.currentHp <= 0);
+}
+
+// Soigne toute l'équipe
+function healFullTeam() {
+    state.team.forEach(p => {
+        p.currentHp = p.maxHp;
+        p.moves.forEach(m => { m.currentPp = m.pp; });
+    });
+}
+
+// Premier Pokémon vivant
+function getActivePokemon() {
+    return state.team.find(p => p.currentHp > 0) || state.team[0];
+}
+
+// === Actions du hub ===
 $('#action-explore').addEventListener('click', async () => {
     if (state.inBattle) return;
+    if (isTeamWiped()) {
+        showToast('Toute ton équipe est K.O. ! Va d\'abord au Centre Pokémon.');
+        return;
+    }
     await startBattle('wild');
+});
+
+$('#action-heal').addEventListener('click', () => {
+    if (state.inBattle) return;
+    healFullTeam();
+    showToast('🏥 Ton équipe est complètement soignée !');
+    refreshHub();
 });
 
 $('#action-champion').addEventListener('click', async () => {
@@ -213,48 +286,86 @@ $('#action-champion').addEventListener('click', async () => {
         showToast(`Tu dois d'abord gagner ${state.requiredWins} combats !`);
         return;
     }
+    if (isTeamWiped()) {
+        showToast('Toute ton équipe est K.O. ! Va d\'abord au Centre Pokémon.');
+        return;
+    }
     await startBattle('champion');
 });
 
 // === Étape 4 : Combat ===
 async function startBattle(mode) {
     state.inBattle = true;
-
-    // Soigner le starter avant le combat (gameplay rapide en v1)
-    const player = state.team[0];
-    player.currentHp = player.maxHp;
-    player.moves.forEach(m => { m.currentPp = m.pp; });
+    const player = getActivePokemon();
 
     showScreen('screen-battle');
     $('#battle-log').innerHTML = '';
-    $('#battle-actions').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#9ba3b4;">Chargement…</div>';
+    $('#battle-actions').innerHTML = '';
+    showBattleMenu();
 
     try {
         const enemy = mode === 'champion'
-            ? await spawnChampion(8)
-            : await spawnWildPokemon(4);
+            ? await spawnChampion()
+            : await spawnWildPokemon();
 
         state.currentBattle = { player, enemy, mode };
 
-        // UI
-        $('#enemy-name').textContent = enemy.name;
+        const enemyName = enemy.nameFr || enemy.name;
+        const playerName = player.nameFr || player.name;
+
+        $('#enemy-name').textContent = enemyName;
+        $('#enemy-level').textContent = `Niv. ${enemy.level}`;
         $('#enemy-sprite').src = enemy.sprite;
-        $('#player-name').textContent = player.name;
+        $('#player-name').textContent = playerName;
         $('#player-level').textContent = `Niv. ${player.level}`;
         $('#player-sprite').src = player.backSprite;
         updateHpBar('enemy', enemy);
         updateHpBar('player', player);
 
         const intro = mode === 'champion'
-            ? `Le Champion envoie ${enemy.name.toUpperCase()} !`
-            : `Un ${enemy.name.toUpperCase()} sauvage apparaît !`;
+            ? `Le Champion envoie ${enemyName} (Niv. ${enemy.level}) !`
+            : `Un ${enemyName} sauvage de niveau ${enemy.level} apparaît !`;
         logBattle(intro);
-        renderMoves();
     } catch (err) {
         console.error(err);
         logBattle('Erreur lors du démarrage du combat.');
     }
 }
+
+// === Menus de combat ===
+function showBattleMenu() {
+    $('#battle-menu').hidden = false;
+    $('#battle-actions').hidden = true;
+    $('#battle-bag').hidden = true;
+}
+
+function showAttackMenu() {
+    $('#battle-menu').hidden = true;
+    $('#battle-actions').hidden = false;
+    $('#battle-bag').hidden = true;
+    renderMoves();
+}
+
+function showBagMenu() {
+    $('#battle-menu').hidden = true;
+    $('#battle-actions').hidden = true;
+    $('#battle-bag').hidden = false;
+    updateInventoryDisplay();
+    $('#use-pokeball').disabled = state.inventory.pokeballs <= 0;
+}
+
+$$('.menu-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'attack') showAttackMenu();
+        else if (action === 'bag') showBagMenu();
+        else if (action === 'flee') attemptFlee();
+    });
+});
+
+$$('.btn-back-menu').forEach(btn => {
+    btn.addEventListener('click', showBattleMenu);
+});
 
 function renderMoves() {
     const actionsDiv = $('#battle-actions');
@@ -267,60 +378,66 @@ function renderMoves() {
         btn.innerHTML = `
             <div class="move-name">${move.name}</div>
             <div class="move-meta">
-                <span class="type-badge type-${move.type}">${move.type}</span>
+                <span class="type-badge type-${move.type}">${TYPE_FR[move.type] || move.type}</span>
                 Puiss. ${move.power} • PP ${move.currentPp}/${move.pp}
             </div>
         `;
         btn.addEventListener('click', () => playerTurn(i));
         actionsDiv.appendChild(btn);
     });
+    // Bouton retour
+    const back = document.createElement('button');
+    back.className = 'btn btn-secondary btn-back-menu';
+    back.style.gridColumn = '1 / -1';
+    back.textContent = '← Retour';
+    back.addEventListener('click', showBattleMenu);
+    actionsDiv.appendChild(back);
 }
 
+function disableAllBattleButtons() {
+    $$('#battle-actions .move-btn').forEach(b => b.disabled = true);
+    $$('.menu-btn').forEach(b => b.disabled = true);
+    $('#use-pokeball').disabled = true;
+}
+
+function enableBattleButtons() {
+    $$('.menu-btn').forEach(b => b.disabled = false);
+}
+
+// === Tour du joueur (attaque) ===
 async function playerTurn(moveIndex) {
     const { player, enemy } = state.currentBattle;
     const move = player.moves[moveIndex];
-
     if (move.currentPp <= 0) return;
     move.currentPp--;
+    disableAllBattleButtons();
 
-    // Désactive les boutons pendant l'animation
-    $$('#battle-actions .move-btn').forEach(b => b.disabled = true);
-
-    // Tour basé sur la vitesse
     const playerFirst = player.speed >= enemy.speed;
 
     if (playerFirst) {
-        await executeMove(player, enemy, move, 'player', 'enemy');
+        await executeMove(player, enemy, move, 'player', 'enemy', true);
         if (enemy.currentHp > 0) {
+            await delay(700);
             const enemyMove = pickEnemyMove(enemy, player);
             enemyMove.currentPp = Math.max(0, enemyMove.currentPp - 1);
-            await delay(700);
-            await executeMove(enemy, player, enemyMove, 'enemy', 'player');
+            await executeMove(enemy, player, enemyMove, 'enemy', 'player', false);
         }
     } else {
         const enemyMove = pickEnemyMove(enemy, player);
         enemyMove.currentPp = Math.max(0, enemyMove.currentPp - 1);
-        await executeMove(enemy, player, enemyMove, 'enemy', 'player');
+        await executeMove(enemy, player, enemyMove, 'enemy', 'player', false);
         if (player.currentHp > 0) {
             await delay(700);
-            await executeMove(player, enemy, move, 'player', 'enemy');
+            await executeMove(player, enemy, move, 'player', 'enemy', true);
         }
     }
 
-    // Vérifie la fin du combat
-    if (enemy.currentHp <= 0) {
-        await delay(800);
-        endBattle('win');
-    } else if (player.currentHp <= 0) {
-        await delay(800);
-        endBattle('lose');
-    } else {
-        renderMoves();
-    }
+    await checkBattleEnd();
 }
 
-async function executeMove(attacker, defender, move, attackerSide, defenderSide) {
-    logBattle(`${attacker.name.toUpperCase()} utilise ${move.name.toUpperCase()} !`);
+async function executeMove(attacker, defender, move, attackerSide, defenderSide, isPlayerAttacker) {
+    const attackerName = attacker.nameFr || attacker.name;
+    logBattle(`${attackerName} utilise ${move.name} !`);
     await delay(500);
 
     if (!attackHits(move)) {
@@ -328,10 +445,9 @@ async function executeMove(attacker, defender, move, attackerSide, defenderSide)
         return;
     }
 
-    const result = calculateDamage(attacker, defender, move);
+    const result = calculateDamage(attacker, defender, move, isPlayerAttacker);
     defender.currentHp = Math.max(0, defender.currentHp - result.damage);
 
-    // Animation : shake du défenseur
     const sprite = $(`#${defenderSide}-sprite`).parentElement;
     sprite.classList.add('shake');
     setTimeout(() => sprite.classList.remove('shake'), 300);
@@ -340,35 +456,161 @@ async function executeMove(attacker, defender, move, attackerSide, defenderSide)
 
     if (result.isCrit) logBattle('Coup critique !');
     if (result.effectiveness === 'super') logBattle("C'est super efficace !");
-    else if (result.effectiveness === 'weak') logBattle('Ce n\'est pas très efficace…');
-    else if (result.effectiveness === 'none') logBattle('Ça n\'affecte pas l\'adversaire !');
+    else if (result.effectiveness === 'weak') logBattle("Ce n'est pas très efficace…");
+    else if (result.effectiveness === 'none') logBattle("Ça n'affecte pas l'adversaire !");
+}
+
+// === Tour du joueur (Pokéball) ===
+$('#use-pokeball').addEventListener('click', async () => {
+    if (state.inventory.pokeballs <= 0) return;
+    await throwPokeball();
+});
+
+async function throwPokeball() {
+    const { player, enemy, mode } = state.currentBattle;
+    state.inventory.pokeballs--;
+    updateInventoryDisplay();
+    disableAllBattleButtons();
+
+    const enemyName = enemy.nameFr || enemy.name;
+    logBattle(`Tu lances une Pokéball sur ${enemyName} !`);
+
+    // Mini animation : on fait shake l'ennemi 3x
+    const sprite = $('.pokemon-sprite.enemy');
+    for (let i = 0; i < 3; i++) {
+        await delay(400);
+        sprite.classList.add('shake');
+        setTimeout(() => sprite.classList.remove('shake'), 300);
+    }
+    await delay(500);
+
+    const result = attemptCapture(enemy, mode === 'champion');
+
+    if (result.reason === 'champion') {
+        logBattle(`Tu ne peux pas capturer le Pokémon du Champion !`);
+        await delay(700);
+        // L'ennemi attaque quand même
+        const enemyMove = pickEnemyMove(enemy, player);
+        enemyMove.currentPp = Math.max(0, enemyMove.currentPp - 1);
+        await executeMove(enemy, player, enemyMove, 'enemy', 'player', false);
+        await checkBattleEnd();
+        return;
+    }
+
+    if (result.caught) {
+        logBattle(`✨ Bravo ! ${enemyName} est capturé !`);
+        await delay(900);
+        captureSuccess(enemy);
+        return;
+    }
+
+    logBattle(`Oh non ! ${enemyName} s'est échappé !`);
+    await delay(700);
+    // L'ennemi attaque
+    if (enemy.currentHp > 0) {
+        const enemyMove = pickEnemyMove(enemy, player);
+        enemyMove.currentPp = Math.max(0, enemyMove.currentPp - 1);
+        await executeMove(enemy, player, enemyMove, 'enemy', 'player', false);
+    }
+    await checkBattleEnd();
+}
+
+function captureSuccess(enemy) {
+    state.inBattle = false;
+    if (state.team.length < 6) {
+        // Soigne légèrement le Pokémon capturé
+        enemy.currentHp = enemy.maxHp;
+        state.team.push(enemy);
+        showToast(`🎉 ${enemy.nameFr || enemy.name} rejoint ton équipe !`);
+    } else {
+        showToast(`Ton équipe est pleine ! Le Pokémon est relâché (Box PC bientôt disponible).`);
+    }
+    state.battlesWon++; // capture compte comme une victoire
+    setTimeout(() => {
+        refreshHub();
+        showScreen('screen-hub');
+    }, 1500);
+}
+
+// === Fuite ===
+async function attemptFlee() {
+    const { mode } = state.currentBattle;
+    if (mode === 'champion') {
+        showToast('Tu ne peux pas fuir face au Champion !');
+        return;
+    }
+    disableAllBattleButtons();
+    logBattle('Tu prends la fuite…');
+    await delay(900);
+    state.inBattle = false;
+    showScreen('screen-hub');
+    refreshHub();
+}
+
+// === Fin du combat ===
+async function checkBattleEnd() {
+    const { enemy, player, mode } = state.currentBattle;
+
+    if (enemy.currentHp <= 0) {
+        const enemyName = enemy.nameFr || enemy.name;
+        logBattle(`${enemyName} est K.O. !`);
+        await delay(900);
+        endBattle('win');
+        return;
+    }
+
+    if (player.currentHp <= 0) {
+        const playerName = player.nameFr || player.name;
+        logBattle(`${playerName} est K.O. !`);
+        await delay(900);
+        endBattle('lose');
+        return;
+    }
+
+    enableBattleButtons();
+    showBattleMenu();
 }
 
 function endBattle(outcome) {
-    const { mode, enemy } = state.currentBattle;
+    const { mode } = state.currentBattle;
     state.inBattle = false;
 
     if (outcome === 'win') {
         if (mode === 'champion') {
-            // Victoire finale
             showEnd('champion-win');
             return;
         }
         state.battlesWon++;
-        logBattle(`Tu as battu ${enemy.name.toUpperCase()} !`);
         setTimeout(() => {
             refreshHub();
             showScreen('screen-hub');
-        }, 1500);
+        }, 800);
     } else {
-        // Défaite
-        showEnd(mode === 'champion' ? 'champion-lose' : 'wild-lose');
+        // Défaite : action selon le mode
+        if (isTeamWiped()) {
+            if (state.mode === 'hardcore') {
+                showEnd('hardcore-loss');
+            } else {
+                // Normal : on soigne et on retourne au hub
+                healFullTeam();
+                setTimeout(() => {
+                    showToast('Ton équipe a été soignée au Centre Pokémon !');
+                    refreshHub();
+                    showScreen('screen-hub');
+                }, 1200);
+            }
+        } else {
+            // Il reste un Pokémon en vie : retour au hub
+            setTimeout(() => {
+                refreshHub();
+                showScreen('screen-hub');
+            }, 1200);
+        }
     }
 }
 
 function showEnd(type) {
     showScreen('screen-end');
-    const card = $('#end-card');
     const icon = $('#end-icon');
     const title = $('#end-title');
     const message = $('#end-message');
@@ -376,57 +618,54 @@ function showEnd(type) {
     if (type === 'champion-win') {
         icon.textContent = '🏆';
         title.textContent = `Bravo, Maître ${state.trainerName} !`;
-        message.textContent = `Tu as vaincu le Champion avec ${state.team[0].name.toUpperCase()} ! Tu es désormais le Maître Pokémon de la région.`;
-    } else if (type === 'champion-lose') {
-        icon.textContent = '😢';
-        title.textContent = 'Le Champion était trop fort…';
-        message.textContent = 'Mais ne te décourage pas, tente ta chance à nouveau !';
-    } else {
+        const starterName = state.team[0].nameFr || state.team[0].name;
+        message.textContent = `Tu as vaincu le Champion avec ${starterName} ! Tu es désormais le Maître Pokémon de la région.`;
+    } else if (type === 'hardcore-loss') {
         icon.textContent = '💀';
-        title.textContent = 'Ton Pokémon est K.O. !';
-        message.textContent = 'Retourne au Centre Pokémon… ah, il n\'y en a pas encore. Tente une nouvelle aventure !';
+        title.textContent = 'Game Over — Mode Hardcore';
+        message.textContent = 'Toute ton équipe est K.O. En mode Hardcore, l\'aventure se termine ici. Tente à nouveau !';
     }
 }
 
 $('#btn-restart').addEventListener('click', () => {
-    // Reset complet
+    state.mode = null;
     state.trainerName = '';
     state.team = [];
     state.battlesWon = 0;
     state.inBattle = false;
     state.currentBattle = null;
     state.easterEggTriggered = false;
+    state.inventory = { pokeballs: 5 };
     $('#trainer-name').value = '';
     $('#trainer-card').hidden = true;
-    // Réinitialise le titre des starters
-    $('.starter-header h2').textContent = 'Choisis ton premier Pokémon';
-    $('.starter-header p').textContent = 'Trois Pokémon t\'attendent dans le laboratoire. Lequel deviendra ton compagnon ?';
-    $('#starter-grid').style.gridTemplateColumns = '';
-    $('#starter-grid').style.maxWidth = '';
-    showScreen('screen-welcome');
+    setBagAvailable(false);
+    showScreen('screen-mode');
 });
 
-// === Onglets de la sidebar ===
+// === Onglets sidebar ===
 $$('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-        if (item.classList.contains('disabled')) {
-            showToast('Cette fonctionnalité sera disponible dans une future mise à jour !');
+        if (item.classList.contains('disabled') || item.disabled) {
+            if (!item.disabled) {
+                showToast('Cette fonctionnalité sera disponible dans une future mise à jour !');
+            }
             return;
         }
         const tab = item.dataset.tab;
         if (tab === 'game') {
-            // Retour à l'écran approprié selon l'état
-            if (state.team.length === 0) showScreen('screen-welcome');
+            if (state.team.length === 0) showScreen(state.mode ? 'screen-welcome' : 'screen-mode');
             else if (state.inBattle) showScreen('screen-battle');
             else showScreen('screen-hub');
+        } else if (tab === 'bag') {
+            updateInventoryDisplay();
+            showScreen('screen-bag');
         }
     });
 });
 
-// === Utilitaires ===
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Démarrage
-showScreen('screen-welcome');
+showScreen('screen-mode');

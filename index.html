@@ -20,18 +20,13 @@
                     <span class="nav-icon">⚔️</span>
                     <span class="nav-label">Aventure</span>
                 </button>
-                <button class="nav-item disabled" data-tab="team" title="Disponible après le démarrage">
-                    <span class="nav-icon">👥</span>
-                    <span class="nav-label">Équipe</span>
+                <button class="nav-item" data-tab="bag" id="nav-bag" disabled>
+                    <span class="nav-icon">🎒</span>
+                    <span class="nav-label">Sac</span>
                 </button>
                 <button class="nav-item disabled" title="Bientôt disponible">
                     <span class="nav-icon">📖</span>
                     <span class="nav-label">Pokédex</span>
-                    <span class="badge-soon">Soon</span>
-                </button>
-                <button class="nav-item disabled" title="Bientôt disponible">
-                    <span class="nav-icon">🎒</span>
-                    <span class="nav-label">Sac</span>
                     <span class="badge-soon">Soon</span>
                 </button>
                 <button class="nav-item disabled" title="Bientôt disponible">
@@ -65,17 +60,51 @@
                     <div class="trainer-avatar">🧑</div>
                     <div class="trainer-info">
                         <div class="trainer-name" id="trainer-name-display">—</div>
-                        <div class="trainer-meta">Dresseur</div>
+                        <div class="trainer-meta" id="trainer-mode-display">Dresseur</div>
                     </div>
                 </div>
-                <div class="version">v1.0 — Génération I</div>
+                <div class="version">v1.1 — Génération I</div>
             </div>
         </aside>
 
         <!-- Zone principale -->
         <main class="main">
-            <!-- Écran 1 : Accueil / nom du dresseur -->
-            <section class="screen active" id="screen-welcome">
+            <!-- Écran 0 : choix du mode de difficulté -->
+            <section class="screen active" id="screen-mode">
+                <div class="mode-header">
+                    <h1>Choisis ton mode de jeu</h1>
+                    <p>Tu pourras changer entre deux parties.</p>
+                </div>
+                <div class="mode-grid">
+                    <div class="mode-card" data-mode="normal">
+                        <div class="mode-icon">😊</div>
+                        <h3>Normal</h3>
+                        <p class="mode-desc">
+                            Mode détendu pour découvrir le jeu.<br>
+                            Si tous tes Pokémon sont K.O., ton équipe est <strong>soignée</strong> et tu reprends au hub.
+                        </p>
+                        <div class="mode-tags">
+                            <span class="mode-tag green">Recommandé</span>
+                            <span class="mode-tag">Sans pénalité</span>
+                        </div>
+                    </div>
+                    <div class="mode-card" data-mode="hardcore">
+                        <div class="mode-icon">💀</div>
+                        <h3>Hardcore</h3>
+                        <p class="mode-desc">
+                            Pour les vrais dresseurs.<br>
+                            Si tous tes Pokémon sont K.O., l'aventure <strong>recommence depuis le début</strong>.
+                        </p>
+                        <div class="mode-tags">
+                            <span class="mode-tag red">Difficile</span>
+                            <span class="mode-tag">Permadeath</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Écran 1 : nom du dresseur -->
+            <section class="screen" id="screen-welcome">
                 <div class="welcome-card">
                     <h1 class="welcome-title">Bienvenue dans le monde des Pokémon !</h1>
                     <p class="welcome-subtitle">
@@ -92,7 +121,10 @@
                             autocomplete="off"
                         >
                     </div>
-                    <button class="btn btn-primary" id="btn-validate-name">Continuer →</button>
+                    <div class="welcome-actions">
+                        <button class="btn btn-secondary" id="btn-back-mode">← Mode</button>
+                        <button class="btn btn-primary" id="btn-validate-name">Continuer →</button>
+                    </div>
                 </div>
             </section>
 
@@ -103,7 +135,6 @@
                     <p>Trois Pokémon t'attendent dans le laboratoire. Lequel deviendra ton compagnon&nbsp;?</p>
                 </div>
                 <div class="starter-grid" id="starter-grid">
-                    <!-- Généré dynamiquement -->
                     <div class="starter-loading">Chargement des starters…</div>
                 </div>
             </section>
@@ -116,7 +147,7 @@
                 </div>
                 <div class="hub-content">
                     <div class="hub-team">
-                        <h3>Ton équipe</h3>
+                        <h3>Ton équipe (<span id="team-count">1</span>/6)</h3>
                         <div class="team-roster" id="team-roster"></div>
                     </div>
                     <div class="hub-actions">
@@ -125,15 +156,15 @@
                             <div class="action-title">Explorer la Route 1</div>
                             <div class="action-desc">Trouver un Pokémon sauvage pour combattre</div>
                         </div>
+                        <div class="action-card" id="action-heal">
+                            <div class="action-icon">🏥</div>
+                            <div class="action-title">Centre Pokémon</div>
+                            <div class="action-desc">Soigner toute ton équipe</div>
+                        </div>
                         <div class="action-card" id="action-champion">
                             <div class="action-icon">🏆</div>
                             <div class="action-title">Affronter le Champion</div>
                             <div class="action-desc" id="champion-desc">Bats 3 Pokémon sauvages d'abord</div>
-                        </div>
-                        <div class="action-card disabled">
-                            <div class="action-icon">🛒</div>
-                            <div class="action-title">Centre Pokémon</div>
-                            <div class="action-desc">Bientôt disponible</div>
                         </div>
                         <div class="action-card disabled">
                             <div class="action-icon">🗺️</div>
@@ -151,9 +182,11 @@
             <!-- Écran 4 : Combat -->
             <section class="screen" id="screen-battle">
                 <div class="battle-arena">
+                    <!-- Adversaire en HAUT-DROITE -->
                     <div class="battle-side opponent">
                         <div class="battle-info">
                             <div class="pokemon-name" id="enemy-name">—</div>
+                            <div class="pokemon-level" id="enemy-level">Niv. ?</div>
                             <div class="hp-container">
                                 <div class="hp-label">PV</div>
                                 <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
@@ -164,6 +197,7 @@
                             <img id="enemy-sprite" src="" alt="">
                         </div>
                     </div>
+                    <!-- Joueur en BAS-GAUCHE -->
                     <div class="battle-side player">
                         <div class="pokemon-sprite player">
                             <img id="player-sprite" src="" alt="">
@@ -183,13 +217,66 @@
                     <div class="battle-log" id="battle-log">
                         <p>Un Pokémon sauvage apparaît !</p>
                     </div>
-                    <div class="battle-actions" id="battle-actions">
-                        <!-- Boutons d'attaque générés dynamiquement -->
+
+                    <!-- Menu principal en combat -->
+                    <div class="battle-menu" id="battle-menu">
+                        <button class="menu-btn" data-action="attack">⚔️ Attaque</button>
+                        <button class="menu-btn" data-action="bag">🎒 Sac</button>
+                        <button class="menu-btn" data-action="flee">🏃 Fuite</button>
+                    </div>
+
+                    <!-- Sous-menu attaques -->
+                    <div class="battle-actions" id="battle-actions" hidden></div>
+
+                    <!-- Sous-menu sac -->
+                    <div class="battle-bag" id="battle-bag" hidden>
+                        <div class="bag-items">
+                            <button class="bag-item" id="use-pokeball">
+                                <span class="bag-icon">🔴</span>
+                                <span class="bag-name">Pokéball</span>
+                                <span class="bag-count">x<span id="pokeball-count">5</span></span>
+                            </button>
+                        </div>
+                        <button class="btn btn-secondary btn-back-menu">← Retour</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Écran 5 : Fin de partie -->
+            <!-- Écran 5 : Sac (onglet sidebar) -->
+            <section class="screen" id="screen-bag">
+                <div class="bag-header">
+                    <h2>🎒 Mon sac</h2>
+                    <p>Tes objets et Pokéballs</p>
+                </div>
+                <div class="bag-grid">
+                    <div class="bag-card">
+                        <div class="bag-card-icon">🔴</div>
+                        <div class="bag-card-info">
+                            <div class="bag-card-name">Pokéball</div>
+                            <div class="bag-card-desc">Permet de capturer un Pokémon sauvage</div>
+                        </div>
+                        <div class="bag-card-count">x<span id="pokeball-count-hub">5</span></div>
+                    </div>
+                    <div class="bag-card disabled">
+                        <div class="bag-card-icon">💊</div>
+                        <div class="bag-card-info">
+                            <div class="bag-card-name">Potion</div>
+                            <div class="bag-card-desc">Bientôt disponible</div>
+                        </div>
+                        <div class="bag-card-count">—</div>
+                    </div>
+                    <div class="bag-card disabled">
+                        <div class="bag-card-icon">🟣</div>
+                        <div class="bag-card-info">
+                            <div class="bag-card-name">Super Ball</div>
+                            <div class="bag-card-desc">Bientôt disponible</div>
+                        </div>
+                        <div class="bag-card-count">—</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Écran 6 : Fin de partie -->
             <section class="screen" id="screen-end">
                 <div class="end-card" id="end-card">
                     <div class="end-icon" id="end-icon">🏆</div>
@@ -201,7 +288,6 @@
         </main>
     </div>
 
-    <!-- Toast pour les easter eggs / messages -->
     <div class="toast" id="toast" hidden></div>
 
     <script type="module" src="js/main.js"></script>
