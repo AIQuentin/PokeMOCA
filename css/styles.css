@@ -1153,6 +1153,7 @@ button { font-family: inherit; }
     justify-content: center;
     padding: 20px;
 }
+.modal[hidden] { display: none; }
 .modal-backdrop {
     position: absolute;
     inset: 0;
