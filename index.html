@@ -66,7 +66,7 @@
                     <span class="nav-label">Notes de patch</span>
                     <span class="badge-new" id="badge-new" hidden>NEW</span>
                 </button>
-                <div class="version" id="version-display">v1.3.0 — Pokédex & Liberté</div>
+                <div class="version" id="version-display">v1.5.0 — Cartographie & Easter Eggs</div>
             </div>
         </aside>
 
@@ -213,7 +213,7 @@
                 </div>
             </section>
 
-            <!-- Écran 4 : Combat -->
+            <!-- Écran 4 : Combat (layout gauche/droite) -->
             <section class="screen" id="screen-battle">
                 <div class="trainer-banner" id="trainer-banner" hidden>
                     <div class="trainer-banner-info">
@@ -222,82 +222,82 @@
                     </div>
                     <div class="trainer-balls" id="trainer-balls-enemy"></div>
                 </div>
-                <div class="battle-arena">
-                    <!-- Adversaire en HAUT-DROITE -->
-                    <div class="battle-side opponent">
-                        <div class="battle-info">
-                            <div class="pokemon-name-row">
-                                <span class="pokemon-name" id="enemy-name">—</span>
-                                <span class="shiny-star" id="enemy-shiny" hidden>★</span>
-                                <span class="dex-mark" id="enemy-dex-mark" hidden title="Déjà au Pokédex">📖</span>
-                            </div>
-                            <div class="pokemon-level" id="enemy-level">Niv. ?</div>
-                            <div class="hp-container">
-                                <div class="hp-row">
-                                    <span class="hp-label">PV</span>
-                                    <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
-                                </div>
-                                <div class="hp-text" id="enemy-hp-text">—/—</div>
-                            </div>
+                <div class="battle-layout">
+                    <!-- COLONNE GAUCHE : actions / log -->
+                    <div class="battle-ui">
+                        <div class="battle-log" id="battle-log">
+                            <p>Un Pokémon sauvage apparaît !</p>
                         </div>
-                        <div class="pokemon-sprite enemy">
-                            <img id="enemy-sprite" src="" alt="">
+
+                        <div class="battle-menu" id="battle-menu">
+                            <button class="menu-btn menu-attack" data-action="attack">⚔ Attaque</button>
+                            <button class="menu-btn menu-auto" data-action="auto" id="btn-autobattle">🤖 Auto</button>
+                            <button class="menu-btn menu-bag" data-action="bag">🎒 Sac</button>
+                            <button class="menu-btn menu-flee" data-action="flee">🏃 Fuite</button>
                         </div>
-                    </div>
-                    <!-- Joueur en BAS-GAUCHE -->
-                    <div class="battle-side player">
-                        <div class="pokemon-sprite player">
-                            <img id="player-sprite" src="" alt="">
-                        </div>
-                        <div class="battle-info">
-                            <div class="pokemon-name-row">
-                                <span class="pokemon-name" id="player-name">—</span>
-                                <span class="shiny-star" id="player-shiny" hidden>★</span>
+
+                        <div class="battle-actions" id="battle-actions" hidden></div>
+
+                        <div class="battle-bag" id="battle-bag" hidden>
+                            <div class="bag-items">
+                                <button class="bag-item" id="use-pokeball">
+                                    <span class="bag-icon item-pokeball" aria-hidden="true"></span>
+                                    <span class="bag-name">Pokéball</span>
+                                    <span class="bag-count">×<span id="pokeball-count">5</span></span>
+                                </button>
                             </div>
-                            <div class="pokemon-level" id="player-level">Niv. 5</div>
-                            <div class="hp-container">
-                                <div class="hp-row">
-                                    <span class="hp-label">PV</span>
-                                    <div class="hp-bar"><div class="hp-fill" id="player-hp-fill"></div></div>
-                                </div>
-                                <div class="hp-text" id="player-hp-text">—/—</div>
-                                <div class="exp-row">
-                                    <span class="exp-label">EXP</span>
-                                    <div class="exp-bar"><div class="exp-fill" id="player-exp-fill"></div></div>
-                                </div>
-                            </div>
+                            <button class="btn btn-secondary btn-back-menu">← Retour</button>
                         </div>
-                    </div>
-                    <div class="chain-indicator" id="chain-indicator" hidden>
-                        Chaîne : <span id="chain-current">1</span> / <span id="chain-total">1</span>
-                    </div>
-                </div>
-                <div class="battle-ui">
-                    <div class="battle-log" id="battle-log">
-                        <p>Un Pokémon sauvage apparaît !</p>
                     </div>
 
-                    <!-- Menu principal en combat -->
-                    <div class="battle-menu" id="battle-menu">
-                        <button class="menu-btn menu-attack" data-action="attack">⚔ Attaque</button>
-                        <button class="menu-btn menu-auto" data-action="auto" id="btn-autobattle">🤖 Auto</button>
-                        <button class="menu-btn menu-bag" data-action="bag">🎒 Sac</button>
-                        <button class="menu-btn menu-flee" data-action="flee">🏃 Fuite</button>
-                    </div>
-
-                    <!-- Sous-menu attaques -->
-                    <div class="battle-actions" id="battle-actions" hidden></div>
-
-                    <!-- Sous-menu sac -->
-                    <div class="battle-bag" id="battle-bag" hidden>
-                        <div class="bag-items">
-                            <button class="bag-item" id="use-pokeball">
-                                <span class="bag-icon item-pokeball" aria-hidden="true"></span>
-                                <span class="bag-name">Pokéball</span>
-                                <span class="bag-count">×<span id="pokeball-count">5</span></span>
-                            </button>
+                    <!-- COLONNE DROITE : prévi du combat -->
+                    <div class="battle-arena">
+                        <div class="battle-side opponent">
+                            <div class="battle-info">
+                                <div class="pokemon-name-row">
+                                    <span class="pokemon-name" id="enemy-name">—</span>
+                                    <span class="shiny-star" id="enemy-shiny" hidden>★</span>
+                                    <span class="dex-mark" id="enemy-dex-mark" hidden title="Déjà au Pokédex">📖</span>
+                                </div>
+                                <div class="pokemon-level" id="enemy-level">Niv. ?</div>
+                                <div class="hp-container">
+                                    <div class="hp-row">
+                                        <span class="hp-label">PV</span>
+                                        <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
+                                    </div>
+                                    <div class="hp-text" id="enemy-hp-text">—/—</div>
+                                </div>
+                            </div>
+                            <div class="pokemon-sprite enemy">
+                                <img id="enemy-sprite" src="" alt="">
+                            </div>
                         </div>
-                        <button class="btn btn-secondary btn-back-menu">← Retour</button>
+                        <div class="battle-side player">
+                            <div class="pokemon-sprite player">
+                                <img id="player-sprite" src="" alt="">
+                            </div>
+                            <div class="battle-info">
+                                <div class="pokemon-name-row">
+                                    <span class="pokemon-name" id="player-name">—</span>
+                                    <span class="shiny-star" id="player-shiny" hidden>★</span>
+                                </div>
+                                <div class="pokemon-level" id="player-level">Niv. 5</div>
+                                <div class="hp-container">
+                                    <div class="hp-row">
+                                        <span class="hp-label">PV</span>
+                                        <div class="hp-bar"><div class="hp-fill" id="player-hp-fill"></div></div>
+                                    </div>
+                                    <div class="hp-text" id="player-hp-text">—/—</div>
+                                    <div class="exp-row">
+                                        <span class="exp-label">EXP</span>
+                                        <div class="exp-bar"><div class="exp-fill" id="player-exp-fill"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chain-indicator" id="chain-indicator" hidden>
+                            Chaîne : <span id="chain-current">1</span> / <span id="chain-total">1</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -477,6 +477,38 @@
     <div class="modal" id="dex-modal" hidden>
         <div class="modal-backdrop" data-close="modal"></div>
         <div class="modal-content" id="dex-modal-content"></div>
+    </div>
+
+    <!-- Modal détail d'une zone (carte) -->
+    <div class="modal" id="location-modal" hidden>
+        <div class="modal-backdrop" data-close="location"></div>
+        <div class="modal-content location-modal-content" id="location-modal-content"></div>
+    </div>
+
+    <!-- Écran : Easter egg Snake (overlay plein écran) -->
+    <div class="modal" id="snake-modal" hidden>
+        <div class="modal-backdrop"></div>
+        <div class="modal-content snake-content">
+            <div class="snake-header">
+                <h3 class="snake-title">🐍 Snake — Mini-jeu secret</h3>
+                <p class="snake-subtitle">
+                    Mange <strong>10 Pokéballs</strong> en moins de <strong>30 secondes</strong> pour gagner un cadeau spécial !
+                </p>
+            </div>
+            <div class="snake-hud">
+                <div class="snake-stat">
+                    <span class="snake-stat-label">Score</span>
+                    <span class="snake-stat-value" id="snake-score">0 / 10</span>
+                </div>
+                <div class="snake-stat">
+                    <span class="snake-stat-label">Temps</span>
+                    <span class="snake-stat-value" id="snake-timer">30.0s</span>
+                </div>
+            </div>
+            <canvas id="snake-canvas" class="snake-canvas"></canvas>
+            <p class="snake-controls">Flèches ou ZQSD / WASD pour diriger Pikachu.</p>
+            <button class="btn btn-secondary" id="btn-snake-quit">Abandonner</button>
+        </div>
     </div>
 
     <!-- Modal Switch sur K.O. -->

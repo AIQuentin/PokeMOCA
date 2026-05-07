@@ -13,6 +13,7 @@ import {
     awardExpToTeam
 } from './battle.js';
 import { VERSION, CODENAME, PATCH_NOTES, ROADMAP } from './version.js';
+import { startSnakeGame, stopSnakeGame } from './snake.js';
 
 // === Persistance ===
 const STORAGE_KEYS = {
@@ -350,8 +351,12 @@ function enterHub() {
 function refreshHub() {
     // Location actuelle (peut être une ville ou une route)
     const loc = getLocationById(state.currentLocation) || getLocationById('palette');
-    $('#hub-route-name').textContent = loc.name;
+    const routeNameEl = $('#hub-route-name');
+    routeNameEl.textContent = loc.name;
     $('#hub-route-desc').textContent = loc.desc;
+
+    // Easter egg : titre cliquable à Bourg Palette
+    setupEasterTrigger(loc.id === 'palette');
 
     // Roster
     renderRoster();
@@ -374,8 +379,10 @@ function refreshHub() {
         $('#explore-desc').textContent = `Pokémon sauvages niv. ${loc.levelMin}–${loc.levelMax}`;
     } else if (loc.type === 'town') {
         if (loc.gymId === 'elite-four') {
-            // Plateau Indigo
-            eliteCard.hidden = false;
+            // Plateau Indigo : verrouillé tant que les 8 badges ne sont pas obtenus
+            if (state.badges.length >= 8) {
+                eliteCard.hidden = false;
+            }
         } else if (loc.gymId) {
             const gym = GYMS[loc.gymId];
             const earned = state.badges.includes(loc.gymId);
@@ -433,7 +440,8 @@ function renderRoster() {
         const div = document.createElement('div');
         div.className = 'team-member'
             + (p.currentHp <= 0 ? ' fainted' : '')
-            + (p.isShiny ? ' shiny' : '');
+            + (p.isShiny ? ' shiny' : '')
+            + (p.isSurfing ? ' surfing' : '');
         const displayName = p.nameFr || p.name;
         const expPct = (p.exp / p.expToNext) * 100;
         const miniSrc = p.miniSprite || p.spriteFallback;
@@ -597,19 +605,11 @@ $('#action-heal').addEventListener('click', () => {
 });
 
 // === Carte de Kanto ===
-async function showMapScreen() {
+function showMapScreen() {
     showScreen('screen-map');
     const grid = $('#kanto-map');
-    grid.innerHTML = '<div class="route-loading">Chargement des zones…</div>';
-
-    // Pré-charger les previews pour les routes
-    const routes = LOCATIONS.filter(l => l.type === 'route');
-    const previews = await Promise.all(
-        routes.map(r => getRoutePokemonPreview(r.pool))
-    );
-    const previewMap = new Map(routes.map((r, i) => [r.id, previews[i]]));
-
     grid.innerHTML = '';
+
     LOCATIONS.forEach((loc) => {
         const unlocked = isLocationUnlocked(loc.id, state.badges.length);
         const isCurrent = state.currentLocation === loc.id;
@@ -621,87 +621,166 @@ async function showMapScreen() {
         if (loc.type === 'town' && loc.gymId && loc.gymId !== 'elite-four') cls += ' gym-town';
         card.className = cls;
         card.dataset.route = loc.id;
-        card.style.gridColumn = loc.col;
-        card.style.gridRow = loc.row;
+        if (loc.col) card.style.gridColumn = loc.col;
+        if (loc.row) card.style.gridRow = loc.row;
 
+        // Petit tag selon état
         let tag = '';
-        if (isCurrent) tag = '<span class="route-name-tag current">Ici</span>';
-        else if (!unlocked) tag = `<span class="route-name-tag locked">${loc.requires.badges} badges</span>`;
-
-        // Contenu spécifique selon le type
-        let body = '';
-        if (loc.type === 'route') {
-            const previewItems = previewMap.get(loc.id) || [];
-            const pokemonsHtml = previewItems.map(p => `
-                <div class="route-poke" title="${p.nameFr}">
-                    <img src="${p.sprite}" alt="${p.nameFr}" loading="lazy">
-                    <span class="route-poke-name">${p.nameFr}</span>
-                </div>
-            `).join('');
-            body = `
-                <div class="route-pokemons">
-                    <div class="route-pokemons-title">
-                        <span>Pokémon sauvages</span>
-                        <span class="route-level-range">Niv. ${loc.levelMin}–${loc.levelMax}</span>
-                    </div>
-                    <div class="route-poke-list">${pokemonsHtml}</div>
-                </div>
-            `;
-        } else if (loc.type === 'town') {
-            // Affiche un indicateur d'arène si applicable
-            let gymInfo = '';
-            if (loc.gymId === 'elite-four') {
-                gymInfo = `
-                    <div class="route-pokemons">
-                        <div class="route-pokemons-title">
-                            <span>👑 Plateau Indigo</span>
-                        </div>
-                        <div style="font-size:12px;color:var(--text-dim);padding:4px 0">
-                            Conseil des 4 + Champion en 5 combats sans soin.
-                        </div>
-                    </div>
-                `;
-            } else if (loc.gymId) {
-                const gym = GYMS[loc.gymId];
-                const earned = state.badges.includes(loc.gymId);
-                const unlockOk = (loc.gymUnlockBadges ?? 0) <= state.badges.length;
-                let badgeMini = '';
-                if (earned) {
-                    badgeMini = `<span class="gym-badge-mini">${gym.badgeIcon} Badge obtenu</span>`;
-                } else if (!unlockOk) {
-                    badgeMini = `<span class="gym-badge-mini locked">🔒 ${loc.gymUnlockBadges} badges requis</span>`;
-                } else {
-                    badgeMini = `<span class="gym-badge-mini">${gym.badgeIcon} Arène — ${gym.leaderName}</span>`;
-                }
-                gymInfo = `
-                    <div class="route-pokemons">
-                        <div class="route-pokemons-title">
-                            <span>Arène : ${gym.leaderName}</span>
-                            <span class="route-level-range">Type ${TYPE_FR[gym.type] || gym.type}</span>
-                        </div>
-                        <div style="padding:4px 0">${badgeMini}</div>
-                    </div>
-                `;
-            }
-            body = gymInfo;
+        if (isCurrent) {
+            tag = '<span class="route-tag-mini current">Ici</span>';
+        } else if (!unlocked) {
+            tag = `<span class="route-tag-mini locked">🔒 ${loc.requires?.badges ?? '?'}</span>`;
+        } else if (loc.gymId === 'elite-four') {
+            tag = '<span class="route-tag-mini elite">👑</span>';
+        } else if (loc.type === 'town' && loc.gymId) {
+            const earned = state.badges.includes(loc.gymId);
+            tag = earned
+                ? '<span class="route-tag-mini earned">✓</span>'
+                : '<span class="route-tag-mini gym">Arène</span>';
         }
 
         card.innerHTML = `
-            <div class="route-head">
-                <div class="route-icon">${loc.icon}</div>
-                <div class="route-info">
-                    <div class="route-name">${loc.name}${tag}</div>
-                    <div class="route-desc">${loc.desc}</div>
-                </div>
-            </div>
-            ${body}
+            <div class="route-icon-mini">${loc.icon}</div>
+            <div class="route-name-mini">${loc.name}</div>
+            ${tag}
         `;
 
-        if (unlocked) {
-            card.addEventListener('click', () => selectLocation(loc.id));
-        }
+        card.addEventListener('click', () => openLocationModal(loc.id));
         grid.appendChild(card);
     });
+}
+
+async function openLocationModal(locId) {
+    const loc = getLocationById(locId);
+    if (!loc) return;
+    const modal = $('#location-modal');
+    const content = $('#location-modal-content');
+    const unlocked = isLocationUnlocked(loc.id, state.badges.length);
+    const isCurrent = state.currentLocation === loc.id;
+
+    // En-tête + description
+    let typeLabel = loc.type === 'town' ? 'Ville' : 'Route';
+    if (loc.gymId === 'elite-four') typeLabel = 'Plateau';
+
+    let stateBadge = '';
+    if (isCurrent) stateBadge = '<span class="route-tag-mini current">Tu es ici</span>';
+    else if (!unlocked) stateBadge = `<span class="route-tag-mini locked">🔒 ${loc.requires?.badges ?? '?'} badges</span>`;
+
+    let sections = '';
+
+    // Pokémon sauvages (routes)
+    if (loc.type === 'route') {
+        sections += `
+            <div class="loc-modal-section">
+                <div class="loc-modal-section-title">
+                    <span>Pokémon sauvages</span>
+                    <span class="route-level-range">Niv. ${loc.levelMin}–${loc.levelMax}</span>
+                </div>
+                <div class="loc-modal-pokemons" id="loc-modal-pokemons">
+                    <div class="route-loading" style="padding:14px;font-size:12px">Chargement…</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Arène / Plateau Indigo
+    if (loc.type === 'town' && loc.gymId) {
+        if (loc.gymId === 'elite-four') {
+            const eliteOk = state.badges.length >= 8;
+            sections += `
+                <div class="loc-modal-section">
+                    <div class="loc-modal-section-title"><span>👑 Plateau Indigo</span></div>
+                    <div class="loc-modal-gym ${eliteOk ? '' : 'locked'}">
+                        <div class="loc-modal-gym-title">Conseil des 4 + Champion</div>
+                        <div class="loc-modal-gym-meta">
+                            ${eliteOk
+                                ? '5 combats enchaînés sans soin. La vraie épreuve finale.'
+                                : `Verrouillé — il te faut les 8 badges (${state.badges.length}/8).`}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            const gym = GYMS[loc.gymId];
+            const earned = state.badges.includes(loc.gymId);
+            const unlockOk = (loc.gymUnlockBadges ?? 0) <= state.badges.length;
+            let cls = '';
+            let meta = `${gym.title} — type ${TYPE_FR[gym.type] || gym.type}`;
+            if (earned) { cls = 'earned'; meta = `Badge ${gym.badge} déjà obtenu.`; }
+            else if (!unlockOk) { cls = 'locked'; meta = `Arène fermée — ${loc.gymUnlockBadges} badges requis (${state.badges.length}/${loc.gymUnlockBadges}).`; }
+            sections += `
+                <div class="loc-modal-section">
+                    <div class="loc-modal-section-title"><span>Arène locale</span></div>
+                    <div class="loc-modal-gym ${cls}">
+                        <div class="loc-modal-gym-title">${gym.badgeIcon} ${gym.leaderName}</div>
+                        <div class="loc-modal-gym-meta">${meta}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Boutons d'action
+    let actions = '';
+    if (isCurrent) {
+        actions = `<button class="btn btn-secondary" data-close="location">Fermer</button>`;
+    } else if (unlocked) {
+        actions = `
+            <button class="btn btn-secondary" data-close="location">Annuler</button>
+            <button class="btn btn-primary" id="btn-loc-travel">🚶 Voyager ici</button>
+        `;
+    } else {
+        actions = `<button class="btn btn-secondary" data-close="location">Fermer</button>`;
+    }
+
+    content.innerHTML = `
+        <div class="loc-modal-head">
+            <div class="loc-modal-icon">${loc.icon}</div>
+            <div class="loc-modal-titles">
+                <div class="loc-modal-name">${loc.name} ${stateBadge}</div>
+                <div class="loc-modal-type">${typeLabel}</div>
+            </div>
+        </div>
+        <div class="loc-modal-desc">${loc.desc}</div>
+        ${sections}
+        <div class="loc-modal-actions">${actions}</div>
+    `;
+
+    modal.hidden = false;
+
+    // Bind close + travel
+    content.querySelectorAll('[data-close="location"]').forEach(btn => {
+        btn.addEventListener('click', closeLocationModal);
+    });
+    const travel = content.querySelector('#btn-loc-travel');
+    if (travel) {
+        travel.addEventListener('click', () => {
+            closeLocationModal();
+            selectLocation(loc.id);
+        });
+    }
+
+    // Charger la preview de Pokémon en arrière-plan
+    if (loc.type === 'route') {
+        try {
+            const items = await getRoutePokemonPreview(loc.pool);
+            const target = $('#loc-modal-pokemons');
+            if (target && !modal.hidden) {
+                target.innerHTML = items.map(p => `
+                    <div class="loc-modal-poke" title="${p.nameFr}">
+                        <img src="${p.sprite}" alt="${p.nameFr}" loading="lazy">
+                        <span class="loc-modal-poke-name">${p.nameFr}</span>
+                    </div>
+                `).join('') || '<div style="font-size:12px;color:var(--text-dim)">Aucun aperçu disponible.</div>';
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+}
+
+function closeLocationModal() {
+    $('#location-modal').hidden = true;
 }
 
 function selectLocation(locId) {
@@ -1511,6 +1590,7 @@ function closeDexModal() {
 
 document.addEventListener('click', (e) => {
     if (e.target.matches('.modal-backdrop[data-close="modal"]')) closeDexModal();
+    if (e.target.matches('.modal-backdrop[data-close="location"]')) closeLocationModal();
 });
 
 // === Options ===
@@ -1640,6 +1720,101 @@ function markVersionAsSeen() {
     localStorage.setItem('pokemoca_seen_version', VERSION);
     $('#badge-new').hidden = true;
 }
+
+// === Easter egg : Snake à Bourg Palette ===
+const easterState = {
+    bound: false,
+    clicks: [],
+    handler: null,
+    glowTimer: null
+};
+
+function setupEasterTrigger(active) {
+    const el = $('#hub-route-name');
+    if (!el) return;
+
+    if (!active) {
+        el.classList.remove('easter-trigger', 'almost');
+        if (easterState.handler) {
+            el.removeEventListener('click', easterState.handler);
+            easterState.handler = null;
+        }
+        easterState.bound = false;
+        easterState.clicks = [];
+        return;
+    }
+
+    el.classList.add('easter-trigger');
+    if (easterState.bound) return;
+
+    easterState.handler = () => {
+        const now = Date.now();
+        easterState.clicks = easterState.clicks.filter(t => now - t < 3000);
+        easterState.clicks.push(now);
+
+        if (easterState.clicks.length >= 5) {
+            easterState.clicks = [];
+            el.classList.remove('almost');
+            openSnakeGame();
+            return;
+        }
+
+        if (easterState.clicks.length >= 3) {
+            el.classList.add('almost');
+            clearTimeout(easterState.glowTimer);
+            easterState.glowTimer = setTimeout(() => el.classList.remove('almost'), 1200);
+        }
+    };
+    el.addEventListener('click', easterState.handler);
+    easterState.bound = true;
+}
+
+function openSnakeGame() {
+    const modal = $('#snake-modal');
+    if (!modal) return;
+    modal.hidden = false;
+    startSnakeGame({
+        onWin: rewardSurfingPikachu,
+        onLose: (reason) => {
+            const msg = reason === 'time'
+                ? 'Trop tard ! Le temps est écoulé.'
+                : reason === 'wall'
+                    ? 'Aïe ! Pikachu s\'est cogné au mur.'
+                    : 'Pikachu s\'est mordu la queue !';
+            showToast(msg);
+            closeSnakeGame();
+        }
+    });
+}
+
+function closeSnakeGame() {
+    stopSnakeGame();
+    const modal = $('#snake-modal');
+    if (modal) modal.hidden = true;
+}
+
+async function rewardSurfingPikachu() {
+    try {
+        const pika = await buildBattlePokemon('pikachu', 10, { forceShiny: true });
+        pika.nameFr = 'Pikachu Surfeur';
+        pika.isSurfing = true;
+        addToPokedex(pika);
+        if (state.team.length < 6) {
+            state.team.push(pika);
+            showToast('🏄 Bravo ! Tu reçois un Pikachu Surfeur shiny !', 6000);
+        } else {
+            showToast('🏄 Pikachu Surfeur ajouté au Pokédex (équipe pleine).', 6000);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Erreur lors de la récompense.');
+    } finally {
+        closeSnakeGame();
+        refreshHub();
+    }
+}
+
+$('#btn-snake-quit')?.addEventListener('click', closeSnakeGame);
 
 // === Démarrage ===
 applyOptionsToUI();
