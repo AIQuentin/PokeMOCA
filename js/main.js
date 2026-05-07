@@ -13,7 +13,6 @@ import {
     awardExpToTeam
 } from './battle.js';
 import { VERSION, CODENAME, PATCH_NOTES, ROADMAP } from './version.js';
-import { startSnakeGame, stopSnakeGame } from './snake.js';
 
 // === Persistance ===
 const STORAGE_KEYS = {
@@ -354,9 +353,6 @@ function refreshHub() {
     const routeNameEl = $('#hub-route-name');
     routeNameEl.textContent = loc.name;
     $('#hub-route-desc').textContent = loc.desc;
-
-    // Easter egg : titre cliquable à Bourg Palette
-    setupEasterTrigger(loc.id === 'palette');
 
     // Roster
     renderRoster();
