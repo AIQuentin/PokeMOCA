@@ -1717,78 +1717,7 @@ function markVersionAsSeen() {
     $('#badge-new').hidden = true;
 }
 
-// === Easter egg : Snake à Bourg Palette ===
-const easterState = {
-    bound: false,
-    clicks: [],
-    handler: null,
-    glowTimer: null
-};
-
-function setupEasterTrigger(active) {
-    const el = $('#hub-route-name');
-    if (!el) return;
-
-    if (!active) {
-        el.classList.remove('easter-trigger', 'almost');
-        if (easterState.handler) {
-            el.removeEventListener('click', easterState.handler);
-            easterState.handler = null;
-        }
-        easterState.bound = false;
-        easterState.clicks = [];
-        return;
-    }
-
-    el.classList.add('easter-trigger');
-    if (easterState.bound) return;
-
-    easterState.handler = () => {
-        const now = Date.now();
-        easterState.clicks = easterState.clicks.filter(t => now - t < 3000);
-        easterState.clicks.push(now);
-
-        if (easterState.clicks.length >= 5) {
-            easterState.clicks = [];
-            el.classList.remove('almost');
-            openSnakeGame();
-            return;
-        }
-
-        if (easterState.clicks.length >= 3) {
-            el.classList.add('almost');
-            clearTimeout(easterState.glowTimer);
-            easterState.glowTimer = setTimeout(() => el.classList.remove('almost'), 1200);
-        }
-    };
-    el.addEventListener('click', easterState.handler);
-    easterState.bound = true;
-}
-
-function openSnakeGame() {
-    const modal = $('#snake-modal');
-    if (!modal) return;
-    modal.hidden = false;
-    startSnakeGame({
-        onWin: rewardSurfingPikachu,
-        onLose: (reason) => {
-            const msg = reason === 'time'
-                ? 'Trop tard ! Le temps est écoulé.'
-                : reason === 'wall'
-                    ? 'Aïe ! Pikachu s\'est cogné au mur.'
-                    : 'Pikachu s\'est mordu la queue !';
-            showToast(msg);
-            closeSnakeGame();
-        }
-    });
-}
-
-function closeSnakeGame() {
-    stopSnakeGame();
-    const modal = $('#snake-modal');
-    if (modal) modal.hidden = true;
-}
-
+// === Récompense Pikachu Surfeur (dormante, à brancher sur un futur trigger) ===
 async function rewardSurfingPikachu() {
     try {
         const pika = await buildBattlePokemon('pikachu', 10, { forceShiny: true });
@@ -1805,12 +1734,9 @@ async function rewardSurfingPikachu() {
         console.error(err);
         showToast('Erreur lors de la récompense.');
     } finally {
-        closeSnakeGame();
         refreshHub();
     }
 }
-
-$('#btn-snake-quit')?.addEventListener('click', closeSnakeGame);
 
 // === Démarrage ===
 applyOptionsToUI();
