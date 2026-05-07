@@ -222,36 +222,19 @@
                     </div>
                     <div class="trainer-balls" id="trainer-balls-enemy"></div>
                 </div>
-                <div class="battle-layout">
-                    <!-- COLONNE GAUCHE : actions / log -->
-                    <div class="battle-ui">
-                        <div class="battle-log" id="battle-log">
-                            <p>Un Pokémon sauvage apparaît !</p>
-                        </div>
-
-                        <div class="battle-menu" id="battle-menu">
-                            <button class="menu-btn menu-attack" data-action="attack">⚔ Attaque</button>
-                            <button class="menu-btn menu-auto" data-action="auto" id="btn-autobattle">🤖 Auto</button>
-                            <button class="menu-btn menu-bag" data-action="bag">🎒 Sac</button>
-                            <button class="menu-btn menu-flee" data-action="flee">🏃 Fuite</button>
-                        </div>
-
-                        <div class="battle-actions" id="battle-actions" hidden></div>
-
-                        <div class="battle-bag" id="battle-bag" hidden>
-                            <div class="bag-items">
-                                <button class="bag-item" id="use-pokeball">
-                                    <span class="bag-icon item-pokeball" aria-hidden="true"></span>
-                                    <span class="bag-name">Pokéball</span>
-                                    <span class="bag-count">×<span id="pokeball-count">5</span></span>
-                                </button>
-                            </div>
-                            <button class="btn btn-secondary btn-back-menu">← Retour</button>
-                        </div>
-                    </div>
-
-                    <!-- COLONNE DROITE : prévi du combat -->
+                <div class="battle-stage">
+                    <!-- Arène immersive (pleine largeur) -->
                     <div class="battle-arena">
+                        <div class="arena-decor">
+                            <div class="arena-cloud cloud-a"></div>
+                            <div class="arena-cloud cloud-b"></div>
+                            <div class="arena-cloud cloud-c"></div>
+                        </div>
+                        <div class="chain-indicator" id="chain-indicator" hidden>
+                            🔗 Chaîne <span id="chain-current">1</span> / <span id="chain-total">1</span>
+                        </div>
+
+                        <!-- Adversaire en haut-droite -->
                         <div class="battle-side opponent">
                             <div class="battle-info">
                                 <div class="pokemon-name-row">
@@ -269,11 +252,15 @@
                                 </div>
                             </div>
                             <div class="pokemon-sprite enemy">
+                                <div class="sprite-platform"></div>
                                 <img id="enemy-sprite" src="" alt="">
                             </div>
                         </div>
+
+                        <!-- Joueur en bas-gauche -->
                         <div class="battle-side player">
                             <div class="pokemon-sprite player">
+                                <div class="sprite-platform"></div>
                                 <img id="player-sprite" src="" alt="">
                             </div>
                             <div class="battle-info">
@@ -295,8 +282,45 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="chain-indicator" id="chain-indicator" hidden>
-                            Chaîne : <span id="chain-current">1</span> / <span id="chain-total">1</span>
+                    </div>
+
+                    <!-- Journal de combat -->
+                    <div class="battle-log" id="battle-log">
+                        <p>Un Pokémon sauvage apparaît !</p>
+                    </div>
+
+                    <!-- Contrôles en bas -->
+                    <div class="battle-controls">
+                        <div class="battle-menu" id="battle-menu">
+                            <button class="menu-btn menu-attack" data-action="attack">
+                                <span class="menu-btn-icon">⚔</span>
+                                <span class="menu-btn-label">Attaque</span>
+                            </button>
+                            <button class="menu-btn menu-auto" data-action="auto" id="btn-autobattle">
+                                <span class="menu-btn-icon">🤖</span>
+                                <span class="menu-btn-label">Auto</span>
+                            </button>
+                            <button class="menu-btn menu-bag" data-action="bag">
+                                <span class="menu-btn-icon">🎒</span>
+                                <span class="menu-btn-label">Sac</span>
+                            </button>
+                            <button class="menu-btn menu-flee" data-action="flee">
+                                <span class="menu-btn-icon">🏃</span>
+                                <span class="menu-btn-label">Fuite</span>
+                            </button>
+                        </div>
+
+                        <div class="battle-actions" id="battle-actions" hidden></div>
+
+                        <div class="battle-bag" id="battle-bag" hidden>
+                            <div class="bag-items">
+                                <button class="bag-item" id="use-pokeball">
+                                    <span class="bag-icon item-pokeball" aria-hidden="true"></span>
+                                    <span class="bag-name">Pokéball</span>
+                                    <span class="bag-count">×<span id="pokeball-count">5</span></span>
+                                </button>
+                            </div>
+                            <button class="btn btn-secondary btn-back-menu">← Retour</button>
                         </div>
                     </div>
                 </div>
