@@ -1875,3 +1875,311 @@ body[data-theme="dark"] .exp-bar { background: var(--bg-base); }
     .pokemon-sprite img { width: 130px; height: 130px; }
     .pokedex-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); }
 }
+
+/* === v1.4 — Badges, switch, trainers, info === */
+
+/* Badges d'arène (remplace progression) */
+.hub-badges {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-top: 14px;
+}
+.badges-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+.badges-count {
+    color: var(--text);
+    font-weight: 700;
+}
+.badges-row {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+}
+.badge-cell {
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background: var(--bg-elev);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    opacity: 0.4;
+    filter: grayscale(1);
+    position: relative;
+    transition: all 0.3s ease;
+}
+.badge-cell.earned {
+    opacity: 1;
+    filter: none;
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--bg-elev), var(--bg-card));
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+.badge-cell.earned::after {
+    content: '✓';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-card);
+}
+.badge-cell .badge-tip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    font-weight: 600;
+}
+.badge-cell:hover .badge-tip { opacity: 1; }
+
+/* Bandeau de combat de dresseur */
+.trainer-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    color: white;
+    padding: 10px 16px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.trainer-banner-info {
+    display: flex;
+    flex-direction: column;
+}
+.trainer-banner-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    opacity: 0.85;
+}
+.trainer-banner-name {
+    font-size: 16px;
+    font-weight: 700;
+}
+.trainer-balls {
+    display: flex;
+    gap: 4px;
+}
+.trainer-ball {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    background: white;
+    position: relative;
+    overflow: hidden;
+}
+.trainer-ball::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 50% 0;
+    background: #e74c3c;
+}
+.trainer-ball::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(0, 0, 0, 0.5);
+    transform: translateY(-50%);
+}
+.trainer-ball.fainted {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+.trainer-ball.active {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.5);
+    transform: scale(1.15);
+}
+
+/* Switch overlay */
+.switch-content {
+    max-width: 480px;
+    width: 92%;
+    padding: 22px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+.switch-title {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: var(--text);
+}
+.switch-subtitle {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+.switch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.switch-poke {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font: inherit;
+    color: var(--text);
+}
+.switch-poke:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--bg-card);
+    transform: translateX(4px);
+}
+.switch-poke:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.switch-poke img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.switch-poke-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.switch-poke-name {
+    font-weight: 700;
+    font-size: 15px;
+}
+.switch-poke-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* Onglet Informations */
+.info-header {
+    margin-bottom: 18px;
+}
+.info-header h2 {
+    margin: 0 0 4px 0;
+    color: var(--text);
+}
+.info-header p {
+    margin: 0;
+    color: var(--text-dim);
+}
+.info-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+}
+.info-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+}
+.info-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.info-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.info-list li {
+    position: relative;
+    padding: 4px 0 4px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+}
+.info-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* Indicateur d'arène sur la carte */
+.route-card.gym-town {
+    border-left: 4px solid var(--accent);
+}
+.route-card.gym-town .route-icon {
+    filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.4));
+}
+.gym-badge-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 2px 8px;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.gym-badge-mini.locked {
+    background: var(--text-dim);
+    opacity: 0.7;
+}
+
+/* Action card pour gym/elite */
+#action-gym .action-icon {
+    filter: drop-shadow(0 0 6px rgba(231, 76, 60, 0.5));
+}
+#action-elite {
+    background: linear-gradient(135deg, var(--bg-card), rgba(231, 76, 60, 0.08));
+    border-color: var(--accent);
+}
+#action-elite .action-icon {
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.5));
+}
+
+@media (max-width: 900px) {
+    .badges-row { grid-template-columns: repeat(4, 1fr); }
+    .info-content { grid-template-columns: 1fr; }
+}

@@ -1,12 +1,16 @@
 // Point d'entrée principal de PokeMOCA
 import {
     buildBattlePokemon, STARTERS, PIKACHU_STARTER_NAME, TYPE_FR,
-    ROUTES, getRoutePokemonPreview, showdownSprites,
-    GEN1_IDS, getDexSpriteUrl, getMaxChainSize
+    getRoutePokemonPreview, showdownSprites,
+    GEN1_IDS, getDexSpriteUrl, getMaxChainSize,
+    LOCATIONS, getLocationById, isLocationUnlocked,
+    GYMS, GYM_ORDER, ELITE_FOUR, getGymByOrder, getNextGym,
+    spawnTrainerTeam, INFO_NOTES
 } from './api.js';
 import {
-    calculateDamage, attackHits, spawnWildPokemon, spawnChampion,
-    pickEnemyMove, pickBestMove, attemptCapture, awardExp
+    calculateDamage, attackHits, spawnWildPokemon,
+    pickEnemyMove, pickBestMove, attemptCapture,
+    awardExpToTeam
 } from './battle.js';
 import { VERSION, CODENAME, PATCH_NOTES, ROADMAP } from './version.js';
 
@@ -72,13 +76,12 @@ const state = {
     mode: null,
     trainerName: '',
     team: [],
-    battlesWon: 0,
-    requiredWins: 3,
+    badges: [],                  // tableau d'IDs de gym battus ('brock', 'misty', ...)
     inBattle: false,
     currentBattle: null,
     easterEggTriggered: false,
     inventory: { pokeballs: 5 },
-    currentRoute: 'route-1',
+    currentLocation: 'palette',  // ID de location (town ou route)
     autobattle: false,
     reorderMode: false,
     pokedex: loadPokedex(),
@@ -86,7 +89,9 @@ const state = {
     options: loadOptions(),
     chain: { remaining: 0, total: 0 },
     chainSize: 1,
-    dexFilter: 'all'
+    dexFilter: 'all',
+    elite: null,                 // { trainers, currentIdx } pour Plateau Indigo
+    pendingSwitch: null          // resolver Promise pour le switch sur K.O.
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -126,6 +131,7 @@ function showScreen(id) {
     else if (id === 'screen-pokedex') $('#nav-pokedex')?.classList.add('active');
     else if (id === 'screen-options') $('.nav-item[data-tab="options"]')?.classList.add('active');
     else if (id === 'screen-patchnotes') $('.nav-item[data-tab="patchnotes"]')?.classList.add('active');
+    else if (id === 'screen-info') $('#nav-info')?.classList.add('active');
     else $('.nav-item[data-tab="game"]')?.classList.add('active');
 }
 
@@ -342,35 +348,82 @@ function enterHub() {
 }
 
 function refreshHub() {
-    // Route actuelle
-    const route = ROUTES.find(r => r.id === state.currentRoute) || ROUTES[0];
-    $('#hub-route-name').textContent = route.name;
-    $('#hub-route-desc').textContent = route.desc;
+    // Location actuelle (peut être une ville ou une route)
+    const loc = getLocationById(state.currentLocation) || getLocationById('palette');
+    $('#hub-route-name').textContent = loc.name;
+    $('#hub-route-desc').textContent = loc.desc;
 
     // Roster
     renderRoster();
-
     $('#team-count').textContent = state.team.length;
 
-    // Progression
-    $('#battles-won').textContent = state.battlesWon;
-    const pct = Math.min(100, (state.battlesWon / state.requiredWins) * 100);
-    $('#progress-fill').style.width = `${pct}%`;
+    // Affichage des actions selon le type de zone
+    const exploreCard = $('#action-explore');
+    const gymCard = $('#action-gym');
+    const eliteCard = $('#action-elite');
+    const chainPanel = $('#hub-chain');
 
-    // Champion
-    const championCard = $('#action-champion');
-    if (state.battlesWon >= state.requiredWins) {
-        championCard.classList.add('primary');
-        championCard.classList.remove('disabled');
-        $('#champion-desc').textContent = 'Tu es prêt(e). Affronte le Champion pour gagner.';
-    } else {
-        championCard.classList.remove('primary');
-        $('#champion-desc').textContent =
-            `Bats encore ${state.requiredWins - state.battlesWon} Pokémon sauvage(s)`;
+    exploreCard.hidden = true;
+    gymCard.hidden = true;
+    eliteCard.hidden = true;
+    chainPanel.style.display = 'none';
+
+    if (loc.type === 'route') {
+        exploreCard.hidden = false;
+        chainPanel.style.display = '';
+        $('#explore-desc').textContent = `Pokémon sauvages niv. ${loc.levelMin}–${loc.levelMax}`;
+    } else if (loc.type === 'town') {
+        if (loc.gymId === 'elite-four') {
+            // Plateau Indigo
+            eliteCard.hidden = false;
+        } else if (loc.gymId) {
+            const gym = GYMS[loc.gymId];
+            const earned = state.badges.includes(loc.gymId);
+            const unlockOk = (loc.gymUnlockBadges ?? 0) <= state.badges.length;
+
+            gymCard.hidden = false;
+            $('#gym-icon').textContent = gym.badgeIcon || '🏆';
+            $('#gym-title').textContent = earned
+                ? `${gym.leaderName} — Badge obtenu`
+                : `Affronter ${gym.leaderName}`;
+            if (earned) {
+                $('#gym-desc').textContent = `Tu as déjà obtenu le Badge ${gym.badge}.`;
+                gymCard.classList.add('disabled');
+                gymCard.classList.remove('primary');
+            } else if (!unlockOk) {
+                $('#gym-desc').textContent = `Arène fermée — il te faut ${loc.gymUnlockBadges} badges.`;
+                gymCard.classList.add('disabled');
+                gymCard.classList.remove('primary');
+            } else {
+                $('#gym-desc').textContent = `${gym.title} — type ${TYPE_FR[gym.type] || gym.type}`;
+                gymCard.classList.remove('disabled');
+                gymCard.classList.add('primary');
+            }
+        }
     }
 
     updateInventoryDisplay();
     renderChainControls();
+    renderBadges();
+}
+
+// Rendu des 8 badges en bas du hub
+function renderBadges() {
+    const row = $('#badges-row');
+    if (!row) return;
+    row.innerHTML = '';
+    GYM_ORDER.forEach(gymId => {
+        const gym = GYMS[gymId];
+        const earned = state.badges.includes(gymId);
+        const cell = document.createElement('div');
+        cell.className = 'badge-cell' + (earned ? ' earned' : '');
+        cell.innerHTML = `
+            ${gym.badgeIcon}
+            <span class="badge-tip">${gym.badge} — ${gym.leaderName}</span>
+        `;
+        row.appendChild(cell);
+    });
+    $('#badges-count').textContent = state.badges.length;
 }
 
 function renderRoster() {
@@ -437,7 +490,7 @@ $('#btn-toggle-reorder').addEventListener('click', () => {
 function renderChainControls() {
     const container = $('#chain-controls');
     if (!container) return;
-    const max = getMaxChainSize(state.battlesWon);
+    const max = getMaxChainSize(state.badges.length);
     container.innerHTML = '';
 
     if (state.chainSize > max) state.chainSize = max;
@@ -448,8 +501,8 @@ function renderChainControls() {
         btn.textContent = `×${i}`;
         if (i > max) {
             btn.disabled = true;
-            const need = i === 4 ? 3 : i === 5 ? 6 : i === 6 ? 10 : 15;
-            btn.title = `Débloqué à ${need} victoires`;
+            const need = i === 4 ? 1 : i === 5 ? 3 : i === 6 ? 5 : 7;
+            btn.title = `Débloqué à ${need} badge(s)`;
         } else {
             btn.addEventListener('click', () => {
                 state.chainSize = i;
@@ -486,6 +539,8 @@ function getActivePokemon() {
 // === Actions du hub ===
 $('#action-explore').addEventListener('click', async () => {
     if (state.inBattle) return;
+    const loc = getLocationById(state.currentLocation);
+    if (!loc || loc.type !== 'route') return;
     if (isTeamWiped()) {
         showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
         return;
@@ -494,6 +549,39 @@ $('#action-explore').addEventListener('click', async () => {
     state.chain.total = state.chainSize;
     state.chain.remaining = state.chainSize;
     await startBattle('wild');
+});
+
+$('#action-gym').addEventListener('click', async () => {
+    if (state.inBattle) return;
+    const loc = getLocationById(state.currentLocation);
+    if (!loc || !loc.gymId || loc.gymId === 'elite-four') return;
+    const gym = GYMS[loc.gymId];
+    if (state.badges.includes(loc.gymId)) {
+        showToast(`Tu as déjà battu ${gym.leaderName}.`);
+        return;
+    }
+    if ((loc.gymUnlockBadges ?? 0) > state.badges.length) {
+        showToast(`Cette arène nécessite ${loc.gymUnlockBadges} badges.`);
+        return;
+    }
+    if (isTeamWiped()) {
+        showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
+        return;
+    }
+    await startGymBattle(gym);
+});
+
+$('#action-elite').addEventListener('click', async () => {
+    if (state.inBattle) return;
+    if (state.badges.length < 8) {
+        showToast('Le Plateau Indigo s\'ouvre avec les 8 badges.');
+        return;
+    }
+    if (isTeamWiped()) {
+        showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
+        return;
+    }
+    await startEliteChain();
 });
 
 $('#action-map').addEventListener('click', () => {
@@ -508,98 +596,209 @@ $('#action-heal').addEventListener('click', () => {
     refreshHub();
 });
 
-$('#action-champion').addEventListener('click', async () => {
-    if (state.inBattle) return;
-    if (state.battlesWon < state.requiredWins) {
-        showToast(`Tu dois d'abord gagner ${state.requiredWins} combats.`);
-        return;
-    }
-    if (isTeamWiped()) {
-        showToast('Toute ton équipe est K.O. Va d\'abord au Centre Pokémon.');
-        return;
-    }
-    state.chain.total = 0;
-    state.chain.remaining = 0;
-    await startBattle('champion');
-});
-
 // === Carte de Kanto ===
 async function showMapScreen() {
     showScreen('screen-map');
     const grid = $('#kanto-map');
     grid.innerHTML = '<div class="route-loading">Chargement des zones…</div>';
 
+    // Pré-charger les previews pour les routes
+    const routes = LOCATIONS.filter(l => l.type === 'route');
     const previews = await Promise.all(
-        ROUTES.map(r => getRoutePokemonPreview(r.pool))
+        routes.map(r => getRoutePokemonPreview(r.pool))
     );
+    const previewMap = new Map(routes.map((r, i) => [r.id, previews[i]]));
 
     grid.innerHTML = '';
-    ROUTES.forEach((route, i) => {
-        const unlocked = state.battlesWon >= route.requires;
-        const isCurrent = state.currentRoute === route.id;
+    LOCATIONS.forEach((loc) => {
+        const unlocked = isLocationUnlocked(loc.id, state.badges.length);
+        const isCurrent = state.currentLocation === loc.id;
         const card = document.createElement('div');
-        card.className = 'route-card'
-            + (isCurrent ? ' current' : '')
-            + (!unlocked ? ' locked' : '');
-        card.dataset.route = route.id;
+
+        let cls = 'route-card location-' + loc.type;
+        if (isCurrent) cls += ' current';
+        if (!unlocked) cls += ' locked';
+        if (loc.type === 'town' && loc.gymId && loc.gymId !== 'elite-four') cls += ' gym-town';
+        card.className = cls;
+        card.dataset.route = loc.id;
+        card.style.gridColumn = loc.col;
+        card.style.gridRow = loc.row;
 
         let tag = '';
-        if (isCurrent) tag = '<span class="route-name-tag current">Actuelle</span>';
-        else if (!unlocked) tag = `<span class="route-name-tag locked">${route.requires} victoires</span>`;
+        if (isCurrent) tag = '<span class="route-name-tag current">Ici</span>';
+        else if (!unlocked) tag = `<span class="route-name-tag locked">${loc.requires.badges} badges</span>`;
 
-        const pokemonsHtml = previews[i].map(p => `
-            <div class="route-poke" title="${p.nameFr}">
-                <img src="${p.sprite}" alt="${p.nameFr}" loading="lazy">
-                <span class="route-poke-name">${p.nameFr}</span>
-            </div>
-        `).join('');
+        // Contenu spécifique selon le type
+        let body = '';
+        if (loc.type === 'route') {
+            const previewItems = previewMap.get(loc.id) || [];
+            const pokemonsHtml = previewItems.map(p => `
+                <div class="route-poke" title="${p.nameFr}">
+                    <img src="${p.sprite}" alt="${p.nameFr}" loading="lazy">
+                    <span class="route-poke-name">${p.nameFr}</span>
+                </div>
+            `).join('');
+            body = `
+                <div class="route-pokemons">
+                    <div class="route-pokemons-title">
+                        <span>Pokémon sauvages</span>
+                        <span class="route-level-range">Niv. ${loc.levelMin}–${loc.levelMax}</span>
+                    </div>
+                    <div class="route-poke-list">${pokemonsHtml}</div>
+                </div>
+            `;
+        } else if (loc.type === 'town') {
+            // Affiche un indicateur d'arène si applicable
+            let gymInfo = '';
+            if (loc.gymId === 'elite-four') {
+                gymInfo = `
+                    <div class="route-pokemons">
+                        <div class="route-pokemons-title">
+                            <span>👑 Plateau Indigo</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-dim);padding:4px 0">
+                            Conseil des 4 + Champion en 5 combats sans soin.
+                        </div>
+                    </div>
+                `;
+            } else if (loc.gymId) {
+                const gym = GYMS[loc.gymId];
+                const earned = state.badges.includes(loc.gymId);
+                const unlockOk = (loc.gymUnlockBadges ?? 0) <= state.badges.length;
+                let badgeMini = '';
+                if (earned) {
+                    badgeMini = `<span class="gym-badge-mini">${gym.badgeIcon} Badge obtenu</span>`;
+                } else if (!unlockOk) {
+                    badgeMini = `<span class="gym-badge-mini locked">🔒 ${loc.gymUnlockBadges} badges requis</span>`;
+                } else {
+                    badgeMini = `<span class="gym-badge-mini">${gym.badgeIcon} Arène — ${gym.leaderName}</span>`;
+                }
+                gymInfo = `
+                    <div class="route-pokemons">
+                        <div class="route-pokemons-title">
+                            <span>Arène : ${gym.leaderName}</span>
+                            <span class="route-level-range">Type ${TYPE_FR[gym.type] || gym.type}</span>
+                        </div>
+                        <div style="padding:4px 0">${badgeMini}</div>
+                    </div>
+                `;
+            }
+            body = gymInfo;
+        }
 
         card.innerHTML = `
             <div class="route-head">
-                <div class="route-icon">${route.icon}</div>
+                <div class="route-icon">${loc.icon}</div>
                 <div class="route-info">
-                    <div class="route-name">${route.name}${tag}</div>
-                    <div class="route-desc">${route.desc}</div>
+                    <div class="route-name">${loc.name}${tag}</div>
+                    <div class="route-desc">${loc.desc}</div>
                 </div>
             </div>
-            <div class="route-pokemons">
-                <div class="route-pokemons-title">
-                    <span>Pokémon capturables</span>
-                    <span class="route-level-range">Niv. ${route.levelMin}–${route.levelMax}</span>
-                </div>
-                <div class="route-poke-list">${pokemonsHtml}</div>
-            </div>
+            ${body}
         `;
 
         if (unlocked) {
-            card.addEventListener('click', () => selectRoute(route.id));
+            card.addEventListener('click', () => selectLocation(loc.id));
         }
         grid.appendChild(card);
     });
 }
 
-function selectRoute(routeId) {
-    state.currentRoute = routeId;
-    const route = ROUTES.find(r => r.id === routeId);
-    showToast(`Direction ${route.name}.`);
+function selectLocation(locId) {
+    const loc = getLocationById(locId);
+    if (!loc) return;
+    state.currentLocation = locId;
+    showToast(`Direction ${loc.name}.`);
     enterHub();
 }
 
+// === Combats de dresseurs ===
+async function startGymBattle(gym) {
+    showScreen('screen-battle');
+    $('#battle-log').innerHTML = '';
+    logBattle(`${gym.leaderName} : « ${gym.intro} »`);
+    await delay(600);
+
+    try {
+        const enemyTeam = await spawnTrainerTeam(gym.team);
+        await startBattle('trainer', {
+            trainer: {
+                id: gym.id,
+                kind: 'gym',
+                leaderName: gym.leaderName,
+                title: gym.title,
+                team: enemyTeam,
+                activeIndex: 0
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        logBattle('Erreur lors du démarrage du combat.');
+    }
+}
+
+async function startEliteChain() {
+    state.elite = { trainers: [...ELITE_FOUR], currentIdx: 0 };
+    await startNextEliteTrainer();
+}
+
+async function startNextEliteTrainer() {
+    if (!state.elite || state.elite.currentIdx >= state.elite.trainers.length) {
+        // Tous battus
+        state.elite = null;
+        showEnd('elite-win');
+        return;
+    }
+    const trainer = state.elite.trainers[state.elite.currentIdx];
+    showScreen('screen-battle');
+    $('#battle-log').innerHTML = '';
+    logBattle(`${trainer.leaderName} : « ${trainer.intro} »`);
+    await delay(600);
+
+    try {
+        const enemyTeam = await spawnTrainerTeam(trainer.team);
+        await startBattle('trainer', {
+            trainer: {
+                id: trainer.id,
+                kind: 'elite',
+                leaderName: trainer.leaderName,
+                title: trainer.title,
+                team: enemyTeam,
+                activeIndex: 0
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        logBattle('Erreur lors du démarrage du combat.');
+    }
+}
+
 // === Étape 4 : Combat ===
-async function startBattle(mode) {
+async function startBattle(mode, opts = {}) {
     state.inBattle = true;
     const player = getActivePokemon();
 
     showScreen('screen-battle');
-    $('#battle-log').innerHTML = '';
+    if (mode !== 'trainer') $('#battle-log').innerHTML = '';
     $('#battle-actions').innerHTML = '';
 
     enableBattleButtons();
-    $('#use-pokeball').disabled = state.inventory.pokeballs <= 0;
+    $('#use-pokeball').disabled = state.inventory.pokeballs <= 0 || mode === 'trainer';
 
     showBattleMenu();
 
-    // Indicateur de chaîne
+    // Bandeau de dresseur
+    const banner = $('#trainer-banner');
+    if (mode === 'trainer' && opts.trainer) {
+        banner.hidden = false;
+        $('#trainer-banner-title').textContent = opts.trainer.title;
+        $('#trainer-banner-name').textContent = opts.trainer.leaderName;
+        renderTrainerBalls(opts.trainer);
+    } else {
+        banner.hidden = true;
+    }
+
+    // Indicateur de chaîne (combats sauvages)
     const chainIndicator = $('#chain-indicator');
     if (mode === 'wild' && state.chain.total > 1) {
         const current = state.chain.total - state.chain.remaining + 1;
@@ -614,63 +813,37 @@ async function startBattle(mode) {
     state.autobattle = state.options.autoBattleDefault;
 
     try {
-        const enemy = mode === 'champion'
-            ? await spawnChampion()
-            : await spawnWildPokemon(state.currentRoute);
-
-        state.currentBattle = { player, enemy, mode };
+        let enemy;
+        if (mode === 'trainer') {
+            enemy = opts.trainer.team[opts.trainer.activeIndex];
+            state.currentBattle = { player, enemy, mode, trainer: opts.trainer };
+        } else {
+            enemy = await spawnWildPokemon(state.currentLocation);
+            state.currentBattle = { player, enemy, mode };
+        }
 
         // Marqueur Pokédex (vu)
         markSeen(enemy);
 
-        const enemyName = enemy.nameFr || enemy.name;
-        const playerName = player.nameFr || player.name;
-
-        $('#enemy-name').textContent = enemyName;
-        $('#enemy-level').textContent = `Niv. ${enemy.level}`;
-        $('#enemy-sprite').src = enemy.sprite;
-        $('#enemy-sprite').onerror = function() {
-            this.onerror = null;
-            this.src = enemy.spriteFallback;
-        };
-        $('#enemy-shiny').hidden = !enemy.isShiny;
-        $('.pokemon-sprite.enemy').classList.toggle('shiny', !!enemy.isShiny);
-
-        // Marque "déjà au Pokédex"
-        $('#enemy-dex-mark').hidden = !state.pokedex.has(enemy.id);
-
-        $('#player-name').textContent = playerName;
-        $('#player-level').textContent = `Niv. ${player.level}`;
-        $('#player-sprite').src = player.backSprite;
-        $('#player-sprite').onerror = function() {
-            this.onerror = null;
-            this.src = player.backSpriteFallback;
-        };
-        $('#player-shiny').hidden = !player.isShiny;
-        $('.pokemon-sprite.player').classList.toggle('shiny', !!player.isShiny);
-
-        updateHpBar('enemy', enemy);
-        updateHpBar('player', player);
-        updateExpBar(player);
+        renderBattleSprites(player, enemy);
 
         if (enemy.isShiny) {
-            logBattle(`✨ Un ${enemyName} SHINY apparaît ! C'est extrêmement rare !`, 'shiny-msg');
+            logBattle(`✨ Un ${enemy.nameFr || enemy.name} SHINY apparaît ! C'est extrêmement rare !`, 'shiny-msg');
+        } else if (mode === 'trainer') {
+            logBattle(`${opts.trainer.leaderName} envoie ${enemy.nameFr || enemy.name} (Niv. ${enemy.level}) !`);
         } else {
-            const intro = mode === 'champion'
-                ? `Le Champion envoie ${enemyName} (Niv. ${enemy.level}) !`
-                : `Un ${enemyName} sauvage de niveau ${enemy.level} apparaît !`;
-            logBattle(intro);
+            logBattle(`Un ${enemy.nameFr || enemy.name} sauvage de niveau ${enemy.level} apparaît !`);
         }
 
         $('#btn-autobattle').classList.toggle('active', state.autobattle);
 
-        // Autocapture : si activée, jamais capturé, et pokéballs dispo
+        // Autocapture : seulement combats sauvages, pas encore capturé, pokéballs dispo
         if (mode === 'wild'
             && state.options.autoCapture
             && !state.pokedex.has(enemy.id)
             && state.inventory.pokeballs > 0) {
             await delay(700);
-            logBattle(`Autocapture : ${enemyName} n'est pas encore au Pokédex.`, 'exp-msg');
+            logBattle(`Autocapture : ${enemy.nameFr || enemy.name} n'est pas encore au Pokédex.`, 'exp-msg');
             await delay(400);
             await throwPokeball();
             return;
@@ -686,6 +859,53 @@ async function startBattle(mode) {
         console.error(err);
         logBattle('Erreur lors du démarrage du combat.');
     }
+}
+
+// Rend les sprites du combat pour un nouveau Pokémon (joueur ou ennemi)
+function renderBattleSprites(player, enemy) {
+    const enemyName = enemy.nameFr || enemy.name;
+    const playerName = player.nameFr || player.name;
+
+    $('#enemy-name').textContent = enemyName;
+    $('#enemy-level').textContent = `Niv. ${enemy.level}`;
+    $('#enemy-sprite').src = enemy.sprite;
+    $('#enemy-sprite').onerror = function() {
+        this.onerror = null;
+        this.src = enemy.spriteFallback;
+    };
+    $('#enemy-shiny').hidden = !enemy.isShiny;
+    $('.pokemon-sprite.enemy').classList.toggle('shiny', !!enemy.isShiny);
+    $('#enemy-dex-mark').hidden = !state.pokedex.has(enemy.id);
+
+    $('#player-name').textContent = playerName;
+    $('#player-level').textContent = `Niv. ${player.level}`;
+    $('#player-sprite').src = player.backSprite;
+    $('#player-sprite').onerror = function() {
+        this.onerror = null;
+        this.src = player.backSpriteFallback;
+    };
+    $('#player-shiny').hidden = !player.isShiny;
+    $('.pokemon-sprite.player').classList.toggle('shiny', !!player.isShiny);
+
+    updateHpBar('enemy', enemy);
+    updateHpBar('player', player);
+    updateExpBar(player);
+}
+
+// Affiche les balls dans le bandeau du dresseur (active = en cours, fainted = K.O.)
+function renderTrainerBalls(trainer) {
+    const container = $('#trainer-balls-enemy');
+    if (!container) return;
+    container.innerHTML = '';
+    trainer.team.forEach((p, idx) => {
+        const ball = document.createElement('span');
+        let cls = 'trainer-ball';
+        if (p.currentHp <= 0) cls += ' fainted';
+        else if (idx === trainer.activeIndex) cls += ' active';
+        ball.className = cls;
+        ball.title = `${p.nameFr || p.name} — Niv. ${p.level}`;
+        container.appendChild(ball);
+    });
 }
 
 // === Menus de combat ===
@@ -853,10 +1073,10 @@ async function throwPokeball() {
     }
     await delay(450);
 
-    const result = attemptCapture(enemy, mode === 'champion');
+    const result = attemptCapture(enemy, mode === 'trainer');
 
-    if (result.reason === 'champion') {
-        logBattle(`Tu ne peux pas capturer le Pokémon du Champion.`);
+    if (result.reason === 'trainer' || result.reason === 'champion') {
+        logBattle(`Tu ne peux pas capturer le Pokémon d'un dresseur.`);
         await delay(700);
         const enemyMove = pickEnemyMove(enemy, player);
         await executeMove(enemy, player, enemyMove, 'enemy', 'player', false);
@@ -894,16 +1114,15 @@ function captureSuccess(enemy) {
     } else {
         showToast(`Ton équipe est pleine. Le Pokémon est ajouté au Pokédex et relâché.`);
     }
-    state.battlesWon++;
-    // Décrémente la chaîne
     advanceChain();
 }
 
 // === Fuite ===
 async function attemptFlee() {
-    const { mode } = state.currentBattle;
-    if (mode === 'champion') {
-        showToast('Tu ne peux pas fuir face au Champion.');
+    const { mode, trainer } = state.currentBattle;
+    if (mode === 'trainer') {
+        const lbl = trainer?.kind === 'elite' ? 'face au Conseil des 4' : 'face à un Champion d\'arène';
+        showToast(`Tu ne peux pas fuir ${lbl}.`);
         return;
     }
     disableAllBattleButtons();
@@ -920,25 +1139,55 @@ async function attemptFlee() {
 
 // === Fin du combat ===
 async function checkBattleEnd() {
-    const { enemy, player, mode } = state.currentBattle;
+    const { enemy, player, mode, trainer } = state.currentBattle;
 
     if (enemy.currentHp <= 0) {
         const enemyName = enemy.nameFr || enemy.name;
         logBattle(`${enemyName} est K.O. !`);
         await delay(700);
 
-        if (mode !== 'champion') {
-            const { gain, levelUps } = awardExp(player, enemy);
-            logBattle(`${player.nameFr || player.name} gagne ${gain} EXP.`, 'exp-msg');
-            updateExpBar(player);
-            for (const newLvl of levelUps) {
-                await delay(500);
-                logBattle(`${player.nameFr || player.name} monte au niveau ${newLvl} !`, 'exp-msg');
-                $('#player-level').textContent = `Niv. ${player.level}`;
-                updateHpBar('player', player);
-                updateExpBar(player);
+        // Multi-EXP partagé
+        const expResults = awardExpToTeam(state.team, player, enemy);
+        for (const r of expResults) {
+            const pName = r.pokemon.nameFr || r.pokemon.name;
+            logBattle(`${pName} gagne ${r.gain} EXP.`, 'exp-msg');
+        }
+        updateExpBar(player);
+        for (const r of expResults) {
+            for (const newLvl of r.levelUps) {
+                await delay(450);
+                const pName = r.pokemon.nameFr || r.pokemon.name;
+                logBattle(`${pName} monte au niveau ${newLvl} !`, 'exp-msg');
+                if (r.pokemon === player) {
+                    $('#player-level').textContent = `Niv. ${player.level}`;
+                    updateHpBar('player', player);
+                    updateExpBar(player);
+                }
             }
-            await delay(700);
+        }
+        await delay(500);
+
+        // Mode dresseur : envoyer le prochain Pokémon ou terminer
+        if (mode === 'trainer' && trainer) {
+            trainer.activeIndex++;
+            if (trainer.activeIndex < trainer.team.length) {
+                const nextEnemy = trainer.team[trainer.activeIndex];
+                state.currentBattle.enemy = nextEnemy;
+                markSeen(nextEnemy);
+                logBattle(`${trainer.leaderName} envoie ${nextEnemy.nameFr || nextEnemy.name} (Niv. ${nextEnemy.level}) !`);
+                renderBattleSprites(player, nextEnemy);
+                renderTrainerBalls(trainer);
+                await delay(800);
+                enableBattleButtons();
+                showBattleMenu();
+                if (state.autobattle) {
+                    await delay(400);
+                    const move = pickBestMove(player, nextEnemy);
+                    const idx = player.moves.indexOf(move);
+                    playerTurn(idx);
+                }
+                return;
+            }
         }
 
         await endBattle('win');
@@ -948,7 +1197,35 @@ async function checkBattleEnd() {
     if (player.currentHp <= 0) {
         const playerName = player.nameFr || player.name;
         logBattle(`${playerName} est K.O. !`);
-        await delay(800);
+        await delay(700);
+
+        // Switch sur K.O. : si d'autres Pokémon valides, demander
+        const alive = state.team.filter(p => p.currentHp > 0);
+        if (alive.length > 0) {
+            const next = alive.length === 1 ? alive[0] : await promptSwitch();
+            // Place le nouveau combattant en tête
+            const nextIdx = state.team.indexOf(next);
+            const oldIdx = state.team.indexOf(player);
+            if (nextIdx !== -1 && oldIdx !== -1) {
+                state.team[oldIdx] = next;
+                state.team[nextIdx] = player;
+            }
+            state.currentBattle.player = next;
+            logBattle(`${state.trainerName} envoie ${next.nameFr || next.name} !`);
+            renderBattleSprites(next, enemy);
+            await delay(700);
+            enableBattleButtons();
+            showBattleMenu();
+            if (state.autobattle) {
+                await delay(400);
+                const move = pickBestMove(next, enemy);
+                const idx = next.moves.indexOf(move);
+                playerTurn(idx);
+            }
+            return;
+        }
+
+        await delay(200);
         endBattle('lose');
         return;
     }
@@ -964,23 +1241,76 @@ async function checkBattleEnd() {
     }
 }
 
+// Demande au joueur de choisir le prochain Pokémon à envoyer
+function promptSwitch() {
+    return new Promise(resolve => {
+        const modal = $('#switch-modal');
+        const list = $('#switch-list');
+        list.innerHTML = '';
+        state.team.forEach(p => {
+            if (p.currentHp <= 0) return;
+            if (p === state.currentBattle.player) return;
+            const btn = document.createElement('button');
+            btn.className = 'switch-poke';
+            const miniSrc = p.miniSprite || p.spriteFallback;
+            const star = p.isShiny ? ' ★' : '';
+            btn.innerHTML = `
+                <img src="${miniSrc}" alt="${p.nameFr || p.name}"
+                     onerror="this.onerror=null;this.src='${p.spriteFallback}'">
+                <div class="switch-poke-info">
+                    <span class="switch-poke-name">${p.nameFr || p.name}${star}</span>
+                    <span class="switch-poke-meta">Niv. ${p.level} · PV ${p.currentHp}/${p.maxHp}</span>
+                </div>
+            `;
+            btn.addEventListener('click', () => {
+                modal.hidden = true;
+                resolve(p);
+            });
+            list.appendChild(btn);
+        });
+        modal.hidden = false;
+    });
+}
+
 async function endBattle(outcome) {
-    const { mode } = state.currentBattle;
+    const { mode, trainer } = state.currentBattle;
     state.inBattle = false;
+    const finishedTrainer = trainer || null;
     state.currentBattle = null;
     enableBattleButtons();
 
     if (outcome === 'win') {
-        if (mode === 'champion') {
-            showEnd('champion-win');
-            return;
+        if (mode === 'trainer' && finishedTrainer) {
+            if (finishedTrainer.kind === 'gym') {
+                // Badge gagné
+                if (!state.badges.includes(finishedTrainer.id)) {
+                    state.badges.push(finishedTrainer.id);
+                }
+                const gym = GYMS[finishedTrainer.id];
+                logBattle(`Tu as obtenu le Badge ${gym.badge} !`, 'exp-msg');
+                showToast(`Badge ${gym.badge} obtenu ! ${gym.leaderName} : « ${gym.outro} »`, 6000);
+                setTimeout(() => {
+                    refreshHub();
+                    showScreen('screen-hub');
+                }, 1400);
+                return;
+            }
+            if (finishedTrainer.kind === 'elite') {
+                // Avance au prochain membre du Conseil des 4 / Champion
+                if (state.elite) {
+                    state.elite.currentIdx++;
+                    setTimeout(() => startNextEliteTrainer(), 1000);
+                }
+                return;
+            }
         }
-        state.battlesWon++;
+        // Combat sauvage : avance la chaîne
         advanceChain();
     } else {
-        // Défaite : interrompt la chaîne
+        // Défaite : interrompt la chaîne et le Plateau Indigo
         state.chain.remaining = 0;
         state.chain.total = 0;
+        state.elite = null;
         if (isTeamWiped()) {
             if (state.mode === 'hardcore') {
                 showEnd('hardcore-loss');
@@ -1024,11 +1354,10 @@ function showEnd(type) {
     const title = $('#end-title');
     const message = $('#end-message');
 
-    if (type === 'champion-win') {
-        icon.textContent = '★';
+    if (type === 'elite-win') {
+        icon.textContent = '👑';
         title.textContent = `Bravo, Maître ${state.trainerName} !`;
-        const starterName = state.team[0].nameFr || state.team[0].name;
-        message.textContent = `Tu as vaincu le Champion avec ${starterName}. Tu es désormais le Maître Pokémon de la région.`;
+        message.textContent = `Tu as vaincu le Conseil des 4 et le Champion. Tu es désormais le Maître Pokémon de Kanto.`;
     } else if (type === 'hardcore-loss') {
         icon.textContent = '✕';
         title.textContent = 'Game Over — Mode Hardcore';
@@ -1040,16 +1369,18 @@ $('#btn-restart').addEventListener('click', () => {
     state.mode = null;
     state.trainerName = '';
     state.team = [];
-    state.battlesWon = 0;
+    state.badges = [];
     state.inBattle = false;
     state.currentBattle = null;
     state.easterEggTriggered = false;
     state.inventory = { pokeballs: 5 };
-    state.currentRoute = 'route-1';
+    state.currentLocation = 'palette';
     state.autobattle = false;
     state.reorderMode = false;
     state.chain = { remaining: 0, total: 0 };
     state.chainSize = 1;
+    state.elite = null;
+    state.pendingSwitch = null;
     $('#trainer-name').value = '';
     $('#trainer-card').hidden = true;
     setBagAvailable(false);
@@ -1078,6 +1409,9 @@ $$('.nav-item').forEach(item => {
         } else if (tab === 'pokedex') {
             renderPokedex();
             showScreen('screen-pokedex');
+        } else if (tab === 'info') {
+            renderInfoNotes();
+            showScreen('screen-info');
         } else if (tab === 'options') {
             showScreen('screen-options');
         } else if (tab === 'patchnotes') {
@@ -1278,6 +1612,20 @@ function renderPatchNotes() {
     container.innerHTML = fragments.join('');
 }
 
+// === Onglet Informations ===
+function renderInfoNotes() {
+    const container = $('#info-content');
+    if (!container) return;
+    container.innerHTML = INFO_NOTES.map(section => `
+        <div class="info-section">
+            <div class="info-section-title">${section.title}</div>
+            <ul class="info-list">
+                ${section.items.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+        </div>
+    `).join('');
+}
+
 function setupVersionDisplay() {
     const el = $('#version-display');
     if (el) el.textContent = `v${VERSION} — ${CODENAME}`;
@@ -1298,4 +1646,5 @@ applyOptionsToUI();
 updateDexBadge();
 setupVersionDisplay();
 renderPatchNotes();
+renderInfoNotes();
 showScreen('screen-mode');

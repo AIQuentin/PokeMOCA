@@ -1,5 +1,51 @@
 # Notes de patch — PokeMOCA
 
+## v1.4.0 — « Voyage à Kanto » (2026-05-07)
+
+### 🏆 8 arènes officielles
+- Les **8 leaders de Kanto** fidèles au jeu Rouge/Bleu
+- Pierre, Ondine, Major Bob, Erika, Koga, Sabrina, Auguste, Giovanni
+- **Équipes et niveaux exacts** du jeu original Gen 1
+- Chaque victoire = **1 badge** qui débloque la suite de la carte
+- L'arène de Jadielle (Giovanni) ne s'ouvre qu'avec **7 badges**
+
+### 👑 Plateau Indigo
+- Conseil des 4 + Champion accessible avec les **8 badges**
+- **5 combats enchaînés** : Olga, Aldo, Agatha, Peter, Bleu
+- **Aucun soin** entre les combats — la vraie épreuve finale
+- Une seule défaite = retour au hub, à recommencer entièrement
+
+### 🔄 Switch sur K.O.
+- Quand ton Pokémon tombe K.O., **choisis le suivant** à envoyer
+- Switch automatique s'il ne reste qu'un Pokémon valide
+- Côté adverse : les dresseurs envoient leurs Pokémon **dans l'ordre**
+- Toute l'équipe K.O. = défaite (ou Game Over en Hardcore)
+
+### 📈 Multi-EXP partagé
+- Le combattant actif reçoit **50 %** de l'EXP gagnée
+- Les autres membres encore valides se partagent les **50 % restants**
+- Si le combattant actif est seul valide, il prend 100 %
+- **Toute l'équipe progresse**, plus seulement la tête de file
+
+### 🗺️ Vraie carte de Kanto
+- Carte sur grille **fidèle au jeu Rouge/Bleu**
+- Bourg Palette, Argenta, Azuria, Carmin, Céladopole, Safrania, Parmanie, Cramois'Île, Jadielle, Plateau Indigo
+- **Villes** (avec arènes) et **routes** (Pokémon sauvages) bien distinctes
+- Déblocage progressif via les badges remportés
+
+### ℹ️ Nouvel onglet Informations
+- Documentation pratique sur les **mécaniques du jeu**
+- Système de combat, capture, EXP, switch, shinies, modes
+- Tout ce qu'il faut savoir pour bien jouer
+
+### 🧹 Refonte de la progression
+- L'ancien Champion à 3 victoires est **entièrement remplacé**
+- La progression se mesure désormais en **badges (0 à 8)**
+- Carte de Kanto déverrouillée au fil des badges
+- **Pokédollars retirés** (pour cette version) : focus sur l'aventure
+
+---
+
 ## v1.3.0 — « Pokédex & Liberté » (2026-05-07)
 
 ### 📖 Pokédex fonctionnel
@@ -137,17 +183,18 @@
 
 ## 🗺️ Prochaines versions prévues
 
-### v1.4 — « Économie »
-- Boutique pour acheter des Pokéballs et des potions
-- Système de PokéDollars gagnés en combat
-- Potions et Super Balls utilisables en combat
+### v1.5 — « Économie & Objets »
+- Boutique (Pokéballs, potions, Super Ball, Hyper Ball)
+- PokéDollars gagnés en combat de dresseur
+- Potions et objets utilisables en combat
 
-### v1.5 — « Box & Switch »
+### v1.6 — « Box & Évolutions »
 - Box PC pour stocker plus de 6 Pokémon
-- Changement de Pokémon en combat
-- Évolutions à un niveau seuil
+- Évolutions automatiques à un niveau seuil
+- Pierres d'évolution pour les cas spéciaux
 
-### v2.0 — « Ligue Pokémon »
-- Conseil des 4 + Maître final
-- Combats contre les leaders d'arène
-- Trophées et statistiques
+### v2.0 — « Team Rocket »
+- Casino de Céladopole avec mini-jeux
+- Quête principale Team Rocket
+- Mont Sélénite et Tour Pokémon explorables
+- Pokémon légendaires (Mewtwo, Articuno, Sulfura, Électhor)

@@ -34,6 +34,10 @@
                     <span class="nav-label">Pokédex</span>
                     <span class="badge-count" id="dex-badge">0</span>
                 </button>
+                <button class="nav-item" data-tab="info" id="nav-info">
+                    <span class="nav-icon">ℹ</span>
+                    <span class="nav-label">Informations</span>
+                </button>
                 <button class="nav-item" data-tab="options">
                     <span class="nav-icon">⚙</span>
                     <span class="nav-label">Options</span>
@@ -46,11 +50,6 @@
                 <button class="nav-item disabled" title="Bientôt disponible">
                     <span class="nav-icon">📦</span>
                     <span class="nav-label">Box PC</span>
-                    <span class="badge-soon">Soon</span>
-                </button>
-                <button class="nav-item disabled" title="Bientôt disponible">
-                    <span class="nav-icon">🏆</span>
-                    <span class="nav-label">Ligue</span>
                     <span class="badge-soon">Soon</span>
                 </button>
             </nav>
@@ -158,10 +157,20 @@
                         <div class="team-roster" id="team-roster"></div>
                     </div>
                     <div class="hub-actions">
-                        <div class="action-card primary" id="action-explore">
+                        <div class="action-card primary" id="action-explore" hidden>
                             <div class="action-icon">🌿</div>
                             <div class="action-title">Explorer cette zone</div>
-                            <div class="action-desc">Trouver un Pokémon sauvage</div>
+                            <div class="action-desc" id="explore-desc">Trouver un Pokémon sauvage</div>
+                        </div>
+                        <div class="action-card" id="action-gym" hidden>
+                            <div class="action-icon" id="gym-icon">🏆</div>
+                            <div class="action-title" id="gym-title">Affronter l'arène</div>
+                            <div class="action-desc" id="gym-desc">—</div>
+                        </div>
+                        <div class="action-card" id="action-elite" hidden>
+                            <div class="action-icon">👑</div>
+                            <div class="action-title">Plateau Indigo</div>
+                            <div class="action-desc" id="elite-desc">5 combats sans soin entre eux</div>
                         </div>
                         <div class="action-card" id="action-map">
                             <div class="action-icon">🗺</div>
@@ -173,15 +182,10 @@
                             <div class="action-title">Centre Pokémon</div>
                             <div class="action-desc">Soigner toute ton équipe</div>
                         </div>
-                        <div class="action-card" id="action-champion">
-                            <div class="action-icon">🏆</div>
-                            <div class="action-title">Affronter le Champion</div>
-                            <div class="action-desc" id="champion-desc">Bats 3 Pokémon sauvages d'abord</div>
-                        </div>
                     </div>
                 </div>
 
-                <div class="hub-chain">
+                <div class="hub-chain" id="hub-chain">
                     <div class="chain-label">
                         <span>Chaîne de combats</span>
                         <span class="chain-hint" id="chain-hint">Lance plusieurs combats à la suite</span>
@@ -189,9 +193,12 @@
                     <div class="chain-controls" id="chain-controls"></div>
                 </div>
 
-                <div class="hub-progress">
-                    <div class="progress-label">Progression : <span id="battles-won">0</span> / 3 victoires avant le Champion</div>
-                    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                <div class="hub-badges">
+                    <div class="badges-label">
+                        <span>Badges d'arène</span>
+                        <span class="badges-count"><span id="badges-count">0</span> / 8</span>
+                    </div>
+                    <div class="badges-row" id="badges-row"></div>
                 </div>
             </section>
 
@@ -208,6 +215,13 @@
 
             <!-- Écran 4 : Combat -->
             <section class="screen" id="screen-battle">
+                <div class="trainer-banner" id="trainer-banner" hidden>
+                    <div class="trainer-banner-info">
+                        <span class="trainer-banner-title" id="trainer-banner-title">—</span>
+                        <span class="trainer-banner-name" id="trainer-banner-name">—</span>
+                    </div>
+                    <div class="trainer-balls" id="trainer-balls-enemy"></div>
+                </div>
                 <div class="battle-arena">
                     <!-- Adversaire en HAUT-DROITE -->
                     <div class="battle-side opponent">
@@ -351,6 +365,17 @@
                 <div class="pokedex-grid" id="pokedex-grid"></div>
             </section>
 
+            <!-- Écran : Informations -->
+            <section class="screen" id="screen-info">
+                <div class="info-header">
+                    <h2>Informations</h2>
+                    <p>Tout ce qu'il faut savoir sur PokeMOCA et ses mécaniques de jeu.</p>
+                </div>
+                <div class="info-content" id="info-content">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </section>
+
             <!-- Écran : Options -->
             <section class="screen" id="screen-options">
                 <div class="options-header">
@@ -452,6 +477,16 @@
     <div class="modal" id="dex-modal" hidden>
         <div class="modal-backdrop" data-close="modal"></div>
         <div class="modal-content" id="dex-modal-content"></div>
+    </div>
+
+    <!-- Modal Switch sur K.O. -->
+    <div class="modal" id="switch-modal" hidden>
+        <div class="modal-backdrop"></div>
+        <div class="modal-content switch-content">
+            <h3 class="switch-title" id="switch-title">Choisis ton prochain Pokémon</h3>
+            <p class="switch-subtitle" id="switch-subtitle">Ton Pokémon est K.O. — qui prend la suite ?</p>
+            <div class="switch-list" id="switch-list"></div>
+        </div>
     </div>
 
     <div class="toast" id="toast" hidden></div>

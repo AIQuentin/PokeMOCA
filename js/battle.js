@@ -1,6 +1,6 @@
 // Système de combat tour par tour simplifié
 import {
-    buildBattlePokemon, GEN1_WILD_POOL, CHAMPION_POKEMON, ROUTES,
+    buildBattlePokemon, GEN1_WILD_POOL, CHAMPION_POKEMON, LOCATIONS,
     expGained, applyLevelUp
 } from './api.js';
 
@@ -81,7 +81,7 @@ export function pickBestMove(attacker, defender) {
 export async function spawnWildPokemon(routeId = null) {
     let pool, levelMin, levelMax;
     if (routeId) {
-        const route = ROUTES.find(r => r.id === routeId);
+        const route = LOCATIONS.find(r => r.id === routeId && r.type === 'route');
         if (route) {
             pool = route.pool;
             levelMin = route.levelMin;
@@ -101,8 +101,7 @@ export async function spawnWildPokemon(routeId = null) {
 export async function spawnChampion() {
     const pool = CHAMPION_POKEMON;
     const name = pool[Math.floor(Math.random() * pool.length)];
-    // Niveau 7 (au lieu de 8 avant)
-    return buildBattlePokemon(name, 7);
+    return buildBattlePokemon(name, 7, { noShiny: true });
 }
 
 // IA ennemie : 70% meilleur move, 30% aléatoire (pour rester surprenant)
@@ -133,6 +132,10 @@ export function attemptCapture(pokemon, isChampionBattle = false) {
 // Retourne la liste des niveaux atteints (vide si pas de level up)
 export function awardExp(pokemon, enemy) {
     const gain = expGained(enemy.level, enemy.baseExp || 60);
+    return addExpAndLevel(pokemon, gain);
+}
+
+function addExpAndLevel(pokemon, gain) {
     pokemon.exp += gain;
     const levelUps = [];
     while (pokemon.exp >= pokemon.expToNext && pokemon.level < 100) {
@@ -141,4 +144,31 @@ export function awardExp(pokemon, enemy) {
         levelUps.push(pokemon.level);
     }
     return { gain, levelUps };
+}
+
+// Multi-EXP partagé : 50 % au combattant actif, 50 % partagé entre les autres valides.
+// Si le combattant actif est seul valide, il reçoit 100 %.
+// Retourne un tableau [{ pokemon, gain, levelUps }] (un par bénéficiaire).
+export function awardExpToTeam(team, active, enemy) {
+    const totalGain = expGained(enemy.level, enemy.baseExp || 60);
+    const others = team.filter(p => p !== active && p.currentHp > 0);
+    const results = [];
+
+    if (others.length === 0) {
+        const r = addExpAndLevel(active, totalGain);
+        results.push({ pokemon: active, ...r });
+        return results;
+    }
+
+    const activeShare = Math.max(1, Math.floor(totalGain * 0.5));
+    const otherShare = Math.max(1, Math.floor((totalGain * 0.5) / others.length));
+
+    const ra = addExpAndLevel(active, activeShare);
+    results.push({ pokemon: active, ...ra });
+
+    for (const p of others) {
+        const r = addExpAndLevel(p, otherShare);
+        results.push({ pokemon: p, ...r });
+    }
+    return results;
 }

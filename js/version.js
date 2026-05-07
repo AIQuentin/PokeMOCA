@@ -1,10 +1,80 @@
 // Version du jeu — source de vérité unique
-export const VERSION = '1.3.0';
-export const CODENAME = 'Pokédex & Liberté';
+export const VERSION = '1.4.0';
+export const CODENAME = 'Voyage à Kanto';
 export const RELEASE_DATE = '2026-05-07';
 
 // Notes de patch — affichées dans l'onglet dédié
 export const PATCH_NOTES = [
+    {
+        version: '1.4.0',
+        codename: 'Voyage à Kanto',
+        date: '2026-05-07',
+        sections: [
+            {
+                title: '🏆 8 arènes officielles',
+                items: [
+                    'Les 8 leaders de Kanto fidèles au jeu Rouge/Bleu',
+                    'Pierre, Ondine, Major Bob, Erika, Koga, Sabrina, Auguste, Giovanni',
+                    'Équipes et niveaux exacts du jeu original',
+                    'Chaque victoire = 1 badge qui débloque la suite de la carte',
+                    'Jadielle (Giovanni) ne s\'ouvre qu\'avec 7 badges'
+                ]
+            },
+            {
+                title: '👑 Plateau Indigo',
+                items: [
+                    'Conseil des 4 + Champion accessible avec les 8 badges',
+                    '5 combats enchaînés : Olga, Aldo, Agatha, Peter, Bleu',
+                    'Aucun soin entre les combats — la vraie épreuve finale',
+                    'Une défaite = retour au hub, à recommencer entièrement'
+                ]
+            },
+            {
+                title: '🔄 Switch sur K.O.',
+                items: [
+                    'Quand ton Pokémon tombe K.O., choisis le suivant à envoyer',
+                    'Switch automatique s\'il ne reste qu\'un Pokémon valide',
+                    'Côté adverse : les dresseurs envoient leurs Pokémon dans l\'ordre',
+                    'Toute l\'équipe K.O. = défaite (ou Game Over en Hardcore)'
+                ]
+            },
+            {
+                title: '📈 Multi-EXP partagé',
+                items: [
+                    'Le combattant actif reçoit 50 % de l\'EXP gagnée',
+                    'Les autres membres encore valides se partagent les 50 % restants',
+                    'Si le combattant actif est seul valide, il prend 100 %',
+                    'Toute l\'équipe progresse, plus seulement la tête de file'
+                ]
+            },
+            {
+                title: '🗺️ Vraie carte de Kanto',
+                items: [
+                    'Carte sur grille fidèle au jeu Rouge/Bleu',
+                    'Bourg Palette, Argenta, Azuria, Carmin, Céladopole, Safrania, Parmanie, Cramois\'Île, Jadielle, Plateau Indigo',
+                    'Villes (avec arènes) et routes (Pokémon sauvages) bien distinctes',
+                    'Déblocage progressif via les badges remportés'
+                ]
+            },
+            {
+                title: 'ℹ️ Nouvel onglet Informations',
+                items: [
+                    'Documentation pratique sur les mécaniques du jeu',
+                    'Système de combat, capture, EXP, switch, shinies, modes',
+                    'Tout ce qu\'il faut savoir pour bien jouer'
+                ]
+            },
+            {
+                title: '🧹 Refonte de la progression',
+                items: [
+                    'L\'ancien Champion à 3 victoires est entièrement remplacé',
+                    'La progression se mesure désormais en badges (0 à 8)',
+                    'Carte de Kanto déverrouillée au fil des badges',
+                    'Pokédollars retirés (pour cette version) : focus sur l\'aventure'
+                ]
+            }
+        ]
+    },
     {
         version: '1.3.0',
         codename: 'Pokédex & Liberté',
@@ -153,30 +223,31 @@ export const PATCH_NOTES = [
 // Roadmap des versions à venir
 export const ROADMAP = [
     {
-        version: '1.4',
-        codename: 'Économie',
+        version: '1.5',
+        codename: 'Économie & Objets',
         items: [
-            'Boutique (Pokéballs, potions, Super Ball)',
-            'PokéDollars gagnés en combat',
-            'Potions utilisables en combat'
+            'Boutique (Pokéballs, potions, Super Ball, Hyper Ball)',
+            'PokéDollars gagnés en combat de dresseur',
+            'Potions et objets utilisables en combat'
         ]
     },
     {
-        version: '1.5',
-        codename: 'Box & Switch',
+        version: '1.6',
+        codename: 'Box & Évolutions',
         items: [
             'Box PC pour stocker plus de 6 Pokémon',
-            'Changement de Pokémon en combat',
-            'Évolutions à un niveau seuil'
+            'Évolutions automatiques à un niveau seuil',
+            'Pierres d\'évolution pour les cas spéciaux'
         ]
     },
     {
         version: '2.0',
-        codename: 'Ligue Pokémon',
+        codename: 'Team Rocket',
         items: [
-            'Conseil des 4 + Maître final',
-            'Combats contre les leaders d\'arène',
-            'Trophées et statistiques'
+            'Casino de Céladopole avec mini-jeux',
+            'Quête principale Team Rocket',
+            'Mont Sélénite et Tour Pokémon explorables',
+            'Pokémon légendaires (Mewtwo, Articuno, Sulfura, Électhor)'
         ]
     }
 ];
