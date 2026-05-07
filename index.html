@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokeMOCA</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://pokeapi.co">
+    <link rel="preconnect" href="https://raw.githubusercontent.com">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar avec onglets -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-poke">Poke</span><span class="logo-moca">MOCA</span>
+            </div>
+            <nav class="nav">
+                <button class="nav-item active" data-tab="game">
+                    <span class="nav-icon">⚔️</span>
+                    <span class="nav-label">Aventure</span>
+                </button>
+                <button class="nav-item disabled" data-tab="team" title="Disponible après le démarrage">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-label">Équipe</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-label">Pokédex</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">🎒</span>
+                    <span class="nav-label">Sac</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">🏪</span>
+                    <span class="nav-label">Boutique</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">📦</span>
+                    <span class="nav-label">Box PC</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">🏆</span>
+                    <span class="nav-label">Ligue</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">🌐</span>
+                    <span class="nav-label">Multijoueur</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+                <button class="nav-item disabled" title="Bientôt disponible">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Options</span>
+                    <span class="badge-soon">Soon</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="trainer-card" id="trainer-card" hidden>
+                    <div class="trainer-avatar">🧑</div>
+                    <div class="trainer-info">
+                        <div class="trainer-name" id="trainer-name-display">—</div>
+                        <div class="trainer-meta">Dresseur</div>
+                    </div>
+                </div>
+                <div class="version">v1.0 — Génération I</div>
+            </div>
+        </aside>
+
+        <!-- Zone principale -->
+        <main class="main">
+            <!-- Écran 1 : Accueil / nom du dresseur -->
+            <section class="screen active" id="screen-welcome">
+                <div class="welcome-card">
+                    <h1 class="welcome-title">Bienvenue dans le monde des Pokémon !</h1>
+                    <p class="welcome-subtitle">
+                        Je suis le <strong>Professeur Chen</strong>. Avant de commencer ton aventure,
+                        dis-moi… comment t'appelles-tu&nbsp;?
+                    </p>
+                    <div class="form-group">
+                        <label for="trainer-name">Nom du dresseur</label>
+                        <input
+                            type="text"
+                            id="trainer-name"
+                            placeholder="Entre ton nom…"
+                            maxlength="16"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <button class="btn btn-primary" id="btn-validate-name">Continuer →</button>
+                </div>
+            </section>
+
+            <!-- Écran 2 : Choix du starter -->
+            <section class="screen" id="screen-starter">
+                <div class="starter-header">
+                    <h2>Choisis ton premier Pokémon</h2>
+                    <p>Trois Pokémon t'attendent dans le laboratoire. Lequel deviendra ton compagnon&nbsp;?</p>
+                </div>
+                <div class="starter-grid" id="starter-grid">
+                    <!-- Généré dynamiquement -->
+                    <div class="starter-loading">Chargement des starters…</div>
+                </div>
+            </section>
+
+            <!-- Écran 3 : Hub de jeu -->
+            <section class="screen" id="screen-hub">
+                <div class="hub-header">
+                    <h2>Route 1</h2>
+                    <p>Des Pokémon sauvages rôdent dans les hautes herbes…</p>
+                </div>
+                <div class="hub-content">
+                    <div class="hub-team">
+                        <h3>Ton équipe</h3>
+                        <div class="team-roster" id="team-roster"></div>
+                    </div>
+                    <div class="hub-actions">
+                        <div class="action-card primary" id="action-explore">
+                            <div class="action-icon">🌿</div>
+                            <div class="action-title">Explorer la Route 1</div>
+                            <div class="action-desc">Trouver un Pokémon sauvage pour combattre</div>
+                        </div>
+                        <div class="action-card" id="action-champion">
+                            <div class="action-icon">🏆</div>
+                            <div class="action-title">Affronter le Champion</div>
+                            <div class="action-desc" id="champion-desc">Bats 3 Pokémon sauvages d'abord</div>
+                        </div>
+                        <div class="action-card disabled">
+                            <div class="action-icon">🛒</div>
+                            <div class="action-title">Centre Pokémon</div>
+                            <div class="action-desc">Bientôt disponible</div>
+                        </div>
+                        <div class="action-card disabled">
+                            <div class="action-icon">🗺️</div>
+                            <div class="action-title">Voyager vers Argenta</div>
+                            <div class="action-desc">Bientôt disponible</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hub-progress">
+                    <div class="progress-label">Progression : <span id="battles-won">0</span> / 3 victoires avant le Champion</div>
+                    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                </div>
+            </section>
+
+            <!-- Écran 4 : Combat -->
+            <section class="screen" id="screen-battle">
+                <div class="battle-arena">
+                    <div class="battle-side opponent">
+                        <div class="battle-info">
+                            <div class="pokemon-name" id="enemy-name">—</div>
+                            <div class="hp-container">
+                                <div class="hp-label">PV</div>
+                                <div class="hp-bar"><div class="hp-fill" id="enemy-hp-fill"></div></div>
+                                <div class="hp-text" id="enemy-hp-text">—/—</div>
+                            </div>
+                        </div>
+                        <div class="pokemon-sprite enemy">
+                            <img id="enemy-sprite" src="" alt="">
+                        </div>
+                    </div>
+                    <div class="battle-side player">
+                        <div class="pokemon-sprite player">
+                            <img id="player-sprite" src="" alt="">
+                        </div>
+                        <div class="battle-info">
+                            <div class="pokemon-name" id="player-name">—</div>
+                            <div class="pokemon-level" id="player-level">Niv. 5</div>
+                            <div class="hp-container">
+                                <div class="hp-label">PV</div>
+                                <div class="hp-bar"><div class="hp-fill" id="player-hp-fill"></div></div>
+                                <div class="hp-text" id="player-hp-text">—/—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="battle-ui">
+                    <div class="battle-log" id="battle-log">
+                        <p>Un Pokémon sauvage apparaît !</p>
+                    </div>
+                    <div class="battle-actions" id="battle-actions">
+                        <!-- Boutons d'attaque générés dynamiquement -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Écran 5 : Fin de partie -->
+            <section class="screen" id="screen-end">
+                <div class="end-card" id="end-card">
+                    <div class="end-icon" id="end-icon">🏆</div>
+                    <h2 id="end-title">Bravo, Champion !</h2>
+                    <p id="end-message">Tu as battu tous tes adversaires.</p>
+                    <button class="btn btn-primary" id="btn-restart">Recommencer une aventure</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast pour les easter eggs / messages -->
+    <div class="toast" id="toast" hidden></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
