@@ -1,10 +1,55 @@
 // Version du jeu — source de vérité unique
-export const VERSION = '1.4.0';
-export const CODENAME = 'Voyage à Kanto';
+export const VERSION = '1.5.0';
+export const CODENAME = 'Polish & Confort';
 export const RELEASE_DATE = '2026-05-07';
 
 // Notes de patch — affichées dans l'onglet dédié
 export const PATCH_NOTES = [
+    {
+        version: '1.5.0',
+        codename: 'Polish & Confort',
+        date: '2026-05-07',
+        sections: [
+            {
+                title: '⚔️ Refonte de l\'écran de combat',
+                items: [
+                    'Nouvelle disposition côte à côte : actions à gauche, arène à droite',
+                    'Arène plus immersive avec dégradé ciel / sol et ombre au sol',
+                    'Sprites du joueur et de l\'adversaire mieux mis en valeur',
+                    'Journal de combat plus lisible avec messages colorés (EXP, shiny)',
+                    'Menu principal Attaque / Auto / Sac / Fuite plus clair'
+                ]
+            },
+            {
+                title: '🗺️ Carte de Kanto simplifiée',
+                items: [
+                    'Vignettes compactes pour chaque ville et route',
+                    'Modal de détail au clic : description, Pokémon sauvages, arène',
+                    'Bouton « Voyager ici » direct depuis la modal',
+                    'Distinction visuelle nette entre villes, routes et arènes',
+                    'Indicateur ⬆ NORD pour mieux se repérer'
+                ]
+            },
+            {
+                title: '🏅 Hub Aventure réorganisé',
+                items: [
+                    'Badges d\'arène en pastilles compactes en bas du hub',
+                    'Tooltip au survol pour identifier chaque badge',
+                    'Compteur 0/8 toujours visible',
+                    'Bandeau de combat de dresseur avec balls de progression',
+                    'Modal de switch sur K.O. plus claire avec aperçu de l\'équipe'
+                ]
+            },
+            {
+                title: '🧹 Nettoyage interne',
+                items: [
+                    'Suppression de fonctionnalités expérimentales jamais finalisées',
+                    'Code allégé et plus facile à maintenir',
+                    'Préparation du terrain pour les prochaines mises à jour'
+                ]
+            }
+        ]
+    },
     {
         version: '1.4.0',
         codename: 'Voyage à Kanto',
@@ -223,7 +268,7 @@ export const PATCH_NOTES = [
 // Roadmap des versions à venir
 export const ROADMAP = [
     {
-        version: '1.5',
+        version: '1.6',
         codename: 'Économie & Objets',
         items: [
             'Boutique (Pokéballs, potions, Super Ball, Hyper Ball)',
@@ -232,7 +277,7 @@ export const ROADMAP = [
         ]
     },
     {
-        version: '1.6',
+        version: '1.7',
         codename: 'Box & Évolutions',
         items: [
             'Box PC pour stocker plus de 6 Pokémon',

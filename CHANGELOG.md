@@ -1,5 +1,35 @@
 # Notes de patch — PokeMOCA
 
+## v1.5.0 — « Polish & Confort » (2026-05-07)
+
+### ⚔️ Refonte de l'écran de combat
+- Nouvelle disposition **côte à côte** : actions à gauche, arène à droite
+- Arène plus immersive avec **dégradé ciel / sol** et ombre au sol
+- Sprites du joueur et de l'adversaire mieux mis en valeur
+- Journal de combat plus lisible avec **messages colorés** (EXP, shiny)
+- Menu principal **Attaque / Auto / Sac / Fuite** plus clair
+
+### 🗺️ Carte de Kanto simplifiée
+- **Vignettes compactes** pour chaque ville et route
+- **Modal de détail** au clic : description, Pokémon sauvages, arène
+- Bouton **« Voyager ici »** direct depuis la modal
+- Distinction visuelle nette entre **villes**, **routes** et **arènes**
+- Indicateur **⬆ NORD** pour mieux se repérer
+
+### 🏅 Hub Aventure réorganisé
+- **Badges d'arène** en pastilles compactes en bas du hub
+- **Tooltip au survol** pour identifier chaque badge
+- Compteur **0/8** toujours visible
+- **Bandeau de combat de dresseur** avec balls de progression
+- Modal de **switch sur K.O.** plus claire avec aperçu de l'équipe
+
+### 🧹 Nettoyage interne
+- Suppression de fonctionnalités expérimentales jamais finalisées
+- Code allégé et plus facile à maintenir
+- Préparation du terrain pour les prochaines mises à jour
+
+---
+
 ## v1.4.0 — « Voyage à Kanto » (2026-05-07)
 
 ### 🏆 8 arènes officielles
@@ -183,12 +213,12 @@
 
 ## 🗺️ Prochaines versions prévues
 
-### v1.5 — « Économie & Objets »
+### v1.6 — « Économie & Objets »
 - Boutique (Pokéballs, potions, Super Ball, Hyper Ball)
 - PokéDollars gagnés en combat de dresseur
 - Potions et objets utilisables en combat
 
-### v1.6 — « Box & Évolutions »
+### v1.7 — « Box & Évolutions »
 - Box PC pour stocker plus de 6 Pokémon
 - Évolutions automatiques à un niveau seuil
 - Pierres d'évolution pour les cas spéciaux
