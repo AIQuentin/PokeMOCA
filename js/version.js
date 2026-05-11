@@ -1,10 +1,38 @@
 // Version du jeu — source de vérité unique
-export const VERSION = '1.5.1';
-export const CODENAME = 'Carte au Hub';
+export const VERSION = '1.5.2';
+export const CODENAME = 'Kanto 8-bit';
 export const RELEASE_DATE = '2026-05-11';
 
 // Notes de patch — affichées dans l'onglet dédié
 export const PATCH_NOTES = [
+    {
+        version: '1.5.2',
+        codename: 'Kanto 8-bit',
+        date: '2026-05-11',
+        sections: [
+            {
+                title: '🎮 Carte façon Game Boy',
+                items: [
+                    'Refonte complète de la carte avec la palette verte authentique du Game Boy',
+                    'Tuiles carrées en pixel-art, police monospace, glyphes minimalistes (⌂ ville, ▲ montagne, ♣ forêt, ★ Plateau)',
+                    'Marqueur rouge animé ▼ au-dessus de ta position actuelle',
+                    'Arènes vaincues colorées en vert, Plateau Indigo en violet',
+                    'Variante adaptée pour le thème sombre'
+                ]
+            },
+            {
+                title: '🔒 Verrouillage progressif des routes',
+                items: [
+                    'Certaines zones exigent maintenant une équipe minimum avant d\'être explorées',
+                    'Route 2 : au moins 1 Pokémon niv. 4',
+                    'Forêt de Jade : équipe d\'au moins 2 Pokémon',
+                    'Route 3 : au moins 1 Pokémon niv. 8 (en plus du badge Roche)',
+                    'Mont Sélénite : équipe d\'au moins 3 Pokémon (en plus du badge Roche)',
+                    'La fiche de chaque zone verrouillée liste précisément les critères manquants'
+                ]
+            }
+        ]
+    },
     {
         version: '1.5.1',
         codename: 'Carte au Hub',

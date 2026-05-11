@@ -471,7 +471,7 @@ export const LOCATIONS = [
         col: 2, row: 6,
         pool: ['pidgey', 'rattata', 'caterpie', 'weedle'],
         levelMin: 3, levelMax: 5,
-        requires: { badges: 0 }
+        requires: { badges: 0, teamLevel: 4 }
     },
     {
         id: 'viridian-forest',
@@ -482,7 +482,7 @@ export const LOCATIONS = [
         col: 2, row: 5,
         pool: ['caterpie', 'metapod', 'weedle', 'kakuna', 'pikachu'],
         levelMin: 4, levelMax: 6,
-        requires: { badges: 0 }
+        requires: { badges: 0, teamSize: 2 }
     },
     {
         id: 'pewter',
@@ -503,7 +503,7 @@ export const LOCATIONS = [
         col: 3, row: 4,
         pool: ['spearow', 'jigglypuff', 'mankey'],
         levelMin: 7, levelMax: 10,
-        requires: { badges: 1 }
+        requires: { badges: 1, teamLevel: 8 }
     },
     {
         id: 'mt-moon',
@@ -514,7 +514,7 @@ export const LOCATIONS = [
         col: 4, row: 4,
         pool: ['zubat', 'geodude', 'paras', 'clefairy'],
         levelMin: 8, levelMax: 11,
-        requires: { badges: 1 }
+        requires: { badges: 1, teamSize: 3 }
     },
     {
         id: 'route-4',
@@ -680,10 +680,38 @@ export function getLocationById(id) {
     return LOCATIONS.find(l => l.id === id);
 }
 
-export function isLocationUnlocked(locationId, badges) {
+// Évalue les critères de déverrouillage et retourne l'état détaillé.
+// `ctx` peut être :
+//   - un nombre (compat legacy : juste le nb de badges)
+//   - un objet { badges: number, team: Pokemon[] }
+export function getLocationStatus(locationId, ctx) {
     const loc = getLocationById(locationId);
-    if (!loc) return false;
-    return badges >= (loc.requires?.badges ?? 0);
+    if (!loc) return { unlocked: false, reasons: ['Lieu introuvable'] };
+
+    const badgesCount = typeof ctx === 'number' ? ctx : (ctx?.badges ?? 0);
+    const team = (typeof ctx === 'object' && Array.isArray(ctx?.team)) ? ctx.team : null;
+    const reqs = loc.requires || {};
+    const reasons = [];
+
+    if ((reqs.badges ?? 0) > badgesCount) {
+        const need = reqs.badges;
+        reasons.push(`🏅 ${need} badge${need > 1 ? 's' : ''}`);
+    }
+    if (reqs.teamSize && team && team.length < reqs.teamSize) {
+        reasons.push(`👥 Équipe de ${reqs.teamSize}+ (${team.length}/${reqs.teamSize})`);
+    }
+    if (reqs.teamLevel && team) {
+        const max = team.reduce((m, p) => Math.max(m, p.level || 0), 0);
+        if (max < reqs.teamLevel) {
+            reasons.push(`⚡ 1 Pokémon niv. ${reqs.teamLevel}+ (max actuel : ${max})`);
+        }
+    }
+
+    return { unlocked: reasons.length === 0, reasons };
+}
+
+export function isLocationUnlocked(locationId, ctx) {
+    return getLocationStatus(locationId, ctx).unlocked;
 }
 
 export async function getRoutePokemonPreview(pool) {

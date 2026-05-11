@@ -1,5 +1,44 @@
 # Notes de patch — PokeMOCA
 
+## v1.5.2 — « Kanto 8-bit » (2026-05-11)
+
+### 🎮 Carte façon Game Boy
+- Refonte complète de la carte avec la **palette verte authentique** du Game Boy (`#9bbc0f` / `#0f380f`)
+- **Tuiles carrées en pixel-art**, police monospace, glyphes minimalistes
+  - `⌂` ville, `▲` montagne, `♣` forêt, `★` Plateau Indigo
+- **Marqueur rouge animé ▼** au-dessus de ta position actuelle
+- Arènes vaincues colorées en **vert**, Plateau Indigo en **violet**
+- Variante adaptée pour le **thème sombre**
+
+### 🔒 Verrouillage progressif des routes
+- Certaines zones exigent maintenant une **équipe minimum** avant d'être explorées
+  - **Route 2** : au moins 1 Pokémon niv. 4
+  - **Forêt de Jade** : équipe d'au moins 2 Pokémon
+  - **Route 3** : au moins 1 Pokémon niv. 8 (en plus du badge Roche)
+  - **Mont Sélénite** : équipe d'au moins 3 Pokémon (en plus du badge Roche)
+- La fiche de chaque zone verrouillée **liste précisément les critères manquants**
+
+### 🧹 Interne
+- `getLocationStatus(locationId, ctx)` retourne `{ unlocked, reasons[] }` pour un feedback granulaire
+- Signature rétro-compatible : accepte un nombre (badges) ou un objet `{ badges, team }`
+
+---
+
+## v1.5.1 — « Carte au Hub » (2026-05-11)
+
+### 🗺️ Carte intégrée au hub
+- La **carte de Kanto** s'affiche directement sur l'écran d'accueil, sous les badges
+- **Voyage en 1 clic** : clique une zone débloquée pour t'y rendre immédiatement
+- **Clic long** (½ seconde) sur n'importe quelle zone pour ouvrir les détails
+- Onglet « Carte » de la barre latérale **retiré** (redondant)
+- Action « Changer de zone » du hub **retirée** (redondante)
+
+### 🧹 Interne
+- `showMapScreen()` refondu en `renderHubMap()` — la carte se redessine à chaque rafraîchissement du hub
+- Wrapper `.hub-map` ajouté pour un meilleur isolement visuel
+
+---
+
 ## v1.5.0 — « Polish & Confort » (2026-05-07)
 
 ### ⚔️ Refonte de l'écran de combat

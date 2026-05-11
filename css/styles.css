@@ -834,109 +834,134 @@ button { font-family: inherit; }
     color: var(--text-muted);
 }
 
-/* ===== Carte Kanto (vraie carte géographique) ===== */
+/* ===== Carte Kanto — style Game Boy minimaliste ===== */
 .kanto-map {
+    --tile-bg: #9bbc0f;        /* vert Game Boy clair */
+    --tile-bg-dark: #8bac0f;
+    --tile-fg: #0f380f;         /* vert Game Boy foncé */
+    --tile-frame: #306230;
+    --tile-water: #8bb8d8;
+    --tile-mountain: #b8a878;
+    --tile-town: #d8b878;
+    --tile-locked: #6a7a4a;
+
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: minmax(78px, auto);
-    gap: 8px;
+    grid-auto-rows: 64px;
+    gap: 2px;
     width: 100%;
-    background:
-        linear-gradient(135deg, rgba(120, 200, 80, 0.18) 0%, rgba(104, 144, 240, 0.18) 100%);
-    border: 2px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px;
+    background: var(--tile-bg-dark);
+    border: 3px solid var(--tile-frame);
+    border-radius: 4px;
+    padding: 6px;
     position: relative;
-    box-shadow: var(--shadow);
+    box-shadow: 0 0 0 2px var(--tile-bg), 0 2px 6px rgba(0,0,0,0.18);
+    image-rendering: pixelated;
 }
-.kanto-map::before {
-    content: '⬆ NORD';
-    position: absolute;
-    top: 6px;
-    right: 14px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    opacity: 0.7;
+body[data-theme="dark"] .kanto-map {
+    --tile-bg: #2a3a18;
+    --tile-bg-dark: #1f2b12;
+    --tile-fg: #c8e070;
+    --tile-frame: #5a7a30;
+    --tile-water: #3a5a78;
+    --tile-mountain: #5a4a30;
+    --tile-town: #6a5030;
+    --tile-locked: #2a2a1a;
 }
+
 .route-card {
-    background: var(--bg-panel);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 8px;
+    background: var(--tile-bg);
+    border: 2px solid var(--tile-frame);
+    border-radius: 0;
+    padding: 4px 3px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     text-align: center;
-    box-shadow: var(--shadow);
     position: relative;
     z-index: 2;
-    min-height: 84px;
+    font-family: 'Courier New', ui-monospace, monospace;
+    color: var(--tile-fg);
+    box-shadow: inset -1px -1px 0 rgba(0,0,0,0.15);
 }
 .route-card:hover:not(.locked) {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-strong);
+    background: #c4dc4c;
+    box-shadow: inset 0 0 0 2px var(--tile-fg);
 }
 .route-card.current {
-    border-color: var(--accent);
-    background: linear-gradient(135deg, var(--accent-soft), var(--accent-yellow-soft));
+    background: #f8d800;
+    box-shadow: inset 0 0 0 2px var(--tile-fg);
+    animation: tile-pulse 1.4s infinite;
+}
+@keyframes tile-pulse {
+    0%, 100% { box-shadow: inset 0 0 0 2px var(--tile-fg); }
+    50% { box-shadow: inset 0 0 0 2px var(--tile-fg), 0 0 0 1px #f8d800; }
 }
 .route-card.locked {
-    opacity: 0.55;
+    background: var(--tile-locked);
+    color: rgba(255,255,255,0.5);
     cursor: not-allowed;
-    background: repeating-linear-gradient(
-        45deg,
-        var(--bg-panel),
-        var(--bg-panel) 8px,
-        var(--bg-elev) 8px,
-        var(--bg-elev) 16px
-    );
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
 }
-.route-card .route-icon-mini {
+
+.route-card .tile-glyph {
     font-size: 22px;
     line-height: 1;
+    font-weight: 900;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.15);
 }
-.route-card .route-name-mini {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--text);
-    line-height: 1.15;
+.route-card .tile-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
     width: 100%;
 }
-.route-card.locked .route-name-mini { color: var(--text-dim); }
-.route-card .route-tag-mini {
-    font-size: 8px;
-    font-weight: 800;
-    padding: 1px 6px;
-    border-radius: var(--radius-pill);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+.route-card .tile-marker {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
 }
-.route-card .route-tag-mini.current { background: var(--accent); color: white; }
-.route-card .route-tag-mini.locked { background: var(--bg-elev); color: var(--text-dim); }
-.route-card .route-tag-mini.gym { background: var(--accent-yellow-soft); color: var(--text); border: 1px solid var(--accent-yellow); }
-.route-card .route-tag-mini.elite { background: var(--accent-secondary); color: white; }
-.route-card .route-tag-mini.earned { background: rgba(22,163,74,0.2); color: #16a34a; }
+.route-card .tile-marker.current {
+    top: -8px;
+    right: 50%;
+    transform: translateX(50%);
+    font-size: 14px;
+    color: #f04040;
+    text-shadow: 1px 1px 0 #000;
+    animation: marker-bob 0.8s ease-in-out infinite;
+}
+@keyframes marker-bob {
+    0%, 100% { transform: translateX(50%) translateY(0); }
+    50% { transform: translateX(50%) translateY(-2px); }
+}
+.route-card .tile-marker.locked { color: #f0c040; }
+.route-card .tile-marker.elite { color: #f8d800; text-shadow: 1px 1px 0 #000; }
+.route-card .tile-marker.earned { color: #ffffff; background: #16a34a; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; }
 
-/* Différenciation ville / route */
-.route-card.location-town {
-    background: linear-gradient(135deg, var(--bg-panel), var(--accent-yellow-soft));
-    border-color: var(--accent-yellow);
-}
-.route-card.location-route {
-    background: var(--bg-panel);
-}
-.route-card.location-town.gym-town {
-    border-color: var(--accent);
-}
+/* Couleurs par type de zone (palette Game Boy) */
+.route-card.location-town { background: var(--tile-town); }
+.route-card.location-town.gym-town { background: #f0a040; }
+.route-card.location-town.gym-town.gym-cleared { background: #80c870; }
+.route-card.location-town.elite-town { background: #c060f0; color: #fff; }
+.route-card[data-route="mt-moon"] { background: var(--tile-mountain); }
+.route-card[data-route="viridian-forest"] { background: #5a8a20; color: #e8f8d0; }
+
+/* Critères verrouillés (modal) */
+.loc-modal-locked { background: rgba(240,192,64,0.12); border: 1px dashed var(--accent-yellow); border-radius: var(--radius); padding: 10px 12px; }
+.loc-modal-reasons { margin: 6px 0 0; padding-left: 20px; font-size: 12px; color: var(--text); }
+.loc-modal-reasons li { margin: 3px 0; }
 
 .route-head {
     display: flex;

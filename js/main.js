@@ -5,7 +5,7 @@ import {
     GEN1_IDS, getDexSpriteUrl, getMaxChainSize,
     LOCATIONS, getLocationById, isLocationUnlocked,
     GYMS, GYM_ORDER, ELITE_FOUR, getGymByOrder, getNextGym,
-    spawnTrainerTeam, INFO_NOTES
+    spawnTrainerTeam, INFO_NOTES, getLocationStatus
 } from './api.js';
 import {
     calculateDamage, attackHits, spawnWildPokemon,
@@ -596,44 +596,65 @@ $('#action-heal').addEventListener('click', () => {
 });
 
 // === Carte de Kanto (embarquée dans le hub) ===
+function locationCtx() {
+    return { badges: state.badges.length, team: state.team };
+}
+
+// Glyphe minimaliste façon Game Boy par type de zone
+function tileGlyph(loc) {
+    if (loc.gymId === 'elite-four') return '★';
+    if (loc.type === 'town' && loc.gymId) return '⌂';
+    if (loc.type === 'town') return '◼';
+    if (loc.id === 'mt-moon') return '▲';
+    if (loc.id === 'viridian-forest') return '♣';
+    return '·';
+}
+
 function renderHubMap() {
     const grid = $('#kanto-map');
     if (!grid) return;
     grid.innerHTML = '';
+    const ctx = locationCtx();
 
     LOCATIONS.forEach((loc) => {
-        const unlocked = isLocationUnlocked(loc.id, state.badges.length);
+        const status = getLocationStatus(loc.id, ctx);
+        const unlocked = status.unlocked;
         const isCurrent = state.currentLocation === loc.id;
         const card = document.createElement('div');
 
         let cls = 'route-card location-' + loc.type;
         if (isCurrent) cls += ' current';
         if (!unlocked) cls += ' locked';
-        if (loc.type === 'town' && loc.gymId && loc.gymId !== 'elite-four') cls += ' gym-town';
+        if (loc.type === 'town' && loc.gymId === 'elite-four') cls += ' elite-town';
+        else if (loc.type === 'town' && loc.gymId) {
+            cls += ' gym-town';
+            if (state.badges.includes(loc.gymId)) cls += ' gym-cleared';
+        }
         card.className = cls;
         card.dataset.route = loc.id;
         if (loc.col) card.style.gridColumn = loc.col;
         if (loc.row) card.style.gridRow = loc.row;
 
-        // Petit tag selon état
-        let tag = '';
+        // Marqueur d'état dans le coin
+        let marker = '';
         if (isCurrent) {
-            tag = '<span class="route-tag-mini current">Ici</span>';
+            marker = '<span class="tile-marker current">▼</span>';
         } else if (!unlocked) {
-            tag = `<span class="route-tag-mini locked">🔒 ${loc.requires?.badges ?? '?'}</span>`;
+            marker = '<span class="tile-marker locked">🔒</span>';
         } else if (loc.gymId === 'elite-four') {
-            tag = '<span class="route-tag-mini elite">👑</span>';
-        } else if (loc.type === 'town' && loc.gymId) {
-            const earned = state.badges.includes(loc.gymId);
-            tag = earned
-                ? '<span class="route-tag-mini earned">✓</span>'
-                : '<span class="route-tag-mini gym">Arène</span>';
+            marker = '<span class="tile-marker elite">★</span>';
+        } else if (loc.type === 'town' && loc.gymId && state.badges.includes(loc.gymId)) {
+            marker = '<span class="tile-marker earned">✓</span>';
         }
 
+        const tooltip = !unlocked && status.reasons.length
+            ? ` title="Verrouillé — ${status.reasons.join(' · ')}"`
+            : ` title="${loc.name}"`;
+
         card.innerHTML = `
-            <div class="route-icon-mini">${loc.icon}</div>
-            <div class="route-name-mini">${loc.name}</div>
-            ${tag}
+            <span class="tile-glyph">${tileGlyph(loc)}</span>
+            <span class="tile-label"${tooltip}>${loc.name}</span>
+            ${marker}
         `;
 
         // 1-clic : voyage direct si débloqué et différent. Sinon, modal détail.
@@ -669,7 +690,8 @@ async function openLocationModal(locId) {
     if (!loc) return;
     const modal = $('#location-modal');
     const content = $('#location-modal-content');
-    const unlocked = isLocationUnlocked(loc.id, state.badges.length);
+    const status = getLocationStatus(loc.id, locationCtx());
+    const unlocked = status.unlocked;
     const isCurrent = state.currentLocation === loc.id;
 
     // En-tête + description
@@ -678,9 +700,21 @@ async function openLocationModal(locId) {
 
     let stateBadge = '';
     if (isCurrent) stateBadge = '<span class="route-tag-mini current">Tu es ici</span>';
-    else if (!unlocked) stateBadge = `<span class="route-tag-mini locked">🔒 ${loc.requires?.badges ?? '?'} badges</span>`;
+    else if (!unlocked) stateBadge = '<span class="route-tag-mini locked">🔒 Verrouillé</span>';
 
     let sections = '';
+
+    // Bloc des critères de déverrouillage manquants
+    if (!unlocked && status.reasons.length) {
+        sections += `
+            <div class="loc-modal-section loc-modal-locked">
+                <div class="loc-modal-section-title"><span>Critères à remplir</span></div>
+                <ul class="loc-modal-reasons">
+                    ${status.reasons.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
 
     // Pokémon sauvages (routes)
     if (loc.type === 'route') {
