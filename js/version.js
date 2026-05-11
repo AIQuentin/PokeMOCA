@@ -1,10 +1,27 @@
 // Version du jeu — source de vérité unique
-export const VERSION = '1.5.0';
-export const CODENAME = 'Polish & Confort';
-export const RELEASE_DATE = '2026-05-07';
+export const VERSION = '1.5.1';
+export const CODENAME = 'Carte au Hub';
+export const RELEASE_DATE = '2026-05-11';
 
 // Notes de patch — affichées dans l'onglet dédié
 export const PATCH_NOTES = [
+    {
+        version: '1.5.1',
+        codename: 'Carte au Hub',
+        date: '2026-05-11',
+        sections: [
+            {
+                title: '🗺️ Carte intégrée au hub',
+                items: [
+                    'La carte de Kanto s\'affiche directement sur l\'écran d\'accueil, sous les badges',
+                    'Voyage en 1 clic : clique une zone débloquée pour t\'y rendre immédiatement',
+                    'Clic long (½ seconde) sur n\'importe quelle zone pour ouvrir les détails',
+                    'Onglet « Carte » de la barre latérale retiré (devenu redondant)',
+                    'Action « Changer de zone » du hub retirée (devenue redondante)'
+                ]
+            }
+        ]
+    },
     {
         version: '1.5.0',
         codename: 'Polish & Confort',

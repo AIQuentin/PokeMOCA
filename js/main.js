@@ -407,6 +407,7 @@ function refreshHub() {
     updateInventoryDisplay();
     renderChainControls();
     renderBadges();
+    renderHubMap();
 }
 
 // Rendu des 8 badges en bas du hub
@@ -1496,8 +1497,6 @@ $$('.nav-item').forEach(item => {
         } else if (tab === 'bag') {
             updateInventoryDisplay();
             showScreen('screen-bag');
-        } else if (tab === 'map') {
-            showMapScreen();
         } else if (tab === 'pokedex') {
             renderPokedex();
             showScreen('screen-pokedex');

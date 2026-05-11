@@ -810,13 +810,37 @@ button { font-family: inherit; }
     border-radius: var(--radius-pill);
 }
 
+/* ===== Carte Kanto embarquée dans le hub ===== */
+.hub-map {
+    margin-top: 18px;
+    grid-column: 1 / -1;
+}
+.hub-map-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.hub-map-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+.hub-map-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
 /* ===== Carte Kanto (vraie carte géographique) ===== */
 .kanto-map {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: minmax(86px, auto);
-    gap: 10px;
-    max-width: 1100px;
+    grid-auto-rows: minmax(78px, auto);
+    gap: 8px;
+    width: 100%;
     background:
         linear-gradient(135deg, rgba(120, 200, 80, 0.18) 0%, rgba(104, 144, 240, 0.18) 100%);
     border: 2px solid var(--border);
