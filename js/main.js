@@ -180,7 +180,7 @@ function updateInventoryDisplay() {
 }
 
 function setBagAvailable(available) {
-    [$('#nav-bag'), $('#nav-map')].forEach(navBtn => {
+    [$('#nav-bag')].forEach(navBtn => {
         if (!navBtn) return;
         if (available) {
             navBtn.disabled = false;
@@ -587,11 +587,6 @@ $('#action-elite').addEventListener('click', async () => {
     await startEliteChain();
 });
 
-$('#action-map').addEventListener('click', () => {
-    if (state.inBattle) return;
-    showMapScreen();
-});
-
 $('#action-heal').addEventListener('click', () => {
     if (state.inBattle) return;
     healFullTeam();
@@ -599,10 +594,10 @@ $('#action-heal').addEventListener('click', () => {
     refreshHub();
 });
 
-// === Carte de Kanto ===
-function showMapScreen() {
-    showScreen('screen-map');
+// === Carte de Kanto (embarquée dans le hub) ===
+function renderHubMap() {
     const grid = $('#kanto-map');
+    if (!grid) return;
     grid.innerHTML = '';
 
     LOCATIONS.forEach((loc) => {
@@ -640,7 +635,30 @@ function showMapScreen() {
             ${tag}
         `;
 
-        card.addEventListener('click', () => openLocationModal(loc.id));
+        // 1-clic : voyage direct si débloqué et différent. Sinon, modal détail.
+        let pressTimer = null;
+        let longPressed = false;
+
+        card.addEventListener('mousedown', () => {
+            longPressed = false;
+            pressTimer = setTimeout(() => {
+                longPressed = true;
+                openLocationModal(loc.id);
+            }, 500);
+        });
+        card.addEventListener('mouseup', () => clearTimeout(pressTimer));
+        card.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+
+        card.addEventListener('click', () => {
+            if (longPressed) return;
+            if (state.inBattle) return;
+            if (isCurrent || !unlocked) {
+                openLocationModal(loc.id);
+            } else {
+                selectLocation(loc.id);
+            }
+        });
+
         grid.appendChild(card);
     });
 }
